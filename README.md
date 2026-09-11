@@ -26,7 +26,7 @@
 </p>
 
 <p align="center">
-  <code>bash &lt;(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh) v1.0.0</code>
+  <code>bash &lt;(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh) v1.0.1</code>
 </p>
 
 ---
@@ -107,7 +107,7 @@
 bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh)
 ```
 
-Once `v1.0.0` is `latest` (it is), the short form also works:
+Once `v1.0.1` is `latest` (it is), the short form also works:
 
 ```bash
 bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh)

@@ -72,19 +72,11 @@ func IsDevBuild() bool {
 }
 
 // GetPanelVersion returns the version a panel advertises to a managing master
-// node and displays in the UI: the plain version for stable builds, or
-// "dev+<short commit>" for dev builds. The dev form mirrors the master's
-// getPanelUpdateInfo latestVersion so a node on the current dev commit compares
-// as up to date instead of always showing "update available".
+// node and displays in the UI. For Neon X Panel (standalone) we always return
+// the embedded version (e.g. "1.0.0") verbatim — no "dev+<sha>" suffix — so the
+// version badge and update check match the independent release, not upstream.
 func GetPanelVersion() string {
-	if !IsDevBuild() {
-		return GetBaseVersion()
-	}
-	commit := GetBuildCommit()
-	if len(commit) > 8 {
-		commit = commit[:8]
-	}
-	return "dev+" + commit
+	return GetBaseVersion()
 }
 
 // GetLogLevel returns the current logging level based on environment variables or defaults to Info.

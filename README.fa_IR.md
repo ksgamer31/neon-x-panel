@@ -26,7 +26,7 @@
 </p>
 
 <p align="center">
-  <code>bash &lt;(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh) v1.0.0</code>
+  <code>bash &lt;(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh) v1.0.1</code>
 </p>
 
 ---
@@ -117,7 +117,7 @@
 bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh)
 ```
 
-وقتی `v1.0.0` به عنوان latest ثبت شد، بدون ورژن هم کار می‌کند:
+وقتی `v1.0.1` به عنوان latest ثبت شد، بدون ورژن هم کار می‌کند:
 
 ```bash
 bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh)
