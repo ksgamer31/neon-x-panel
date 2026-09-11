@@ -262,9 +262,47 @@
   position: relative;
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 24px 16px;
+  gap: 16px;
+}
+
+.login-header {
+  text-align: center;
+  z-index: 2;
+  margin-bottom: 8px;
+}
+
+.neon-title {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  margin: 0;
+  background: linear-gradient(135deg, #06ffa5 0%, #8b5cf6 50%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: neon-glow-pulse 3s ease-in-out infinite alternate;
+}
+
+.neon-subtitle {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  margin-top: 6px;
+  text-transform: uppercase;
+}
+
+@keyframes neon-glow-pulse {
+  from {
+    filter: drop-shadow(0 0 8px rgba(6, 255, 165, 0.5)) drop-shadow(0 0 16px rgba(139, 92, 246, 0.3));
+  }
+  to {
+    filter: drop-shadow(0 0 18px rgba(6, 255, 165, 0.85)) drop-shadow(0 0 35px rgba(139, 92, 246, 0.65));
+  }
 }
 
 .login-loading {
