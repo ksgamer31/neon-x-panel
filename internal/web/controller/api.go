@@ -174,17 +174,23 @@ func (a *APIController) enforceRBAC(c *gin.Context) {
 	method := c.Request.Method
 	isMutating := method == http.MethodPost || method == http.MethodPut || method == http.MethodDelete || method == http.MethodPatch
 
-	// All non-owner roles are blocked from settings/nodes/hosts/xray/admin management
+	// settings read endpoints needed by clients/inbounds views — allow for all non-owner roles
+	readSettingAllow := map[string]bool{"/setting/all": true, "/setting/defaultSettings": true, "/setting/factoryDefaults": true, "/setting/getDefaultJsonConfig": true}
+	// All non-owner roles are blocked from settings/nodes/hosts/xray/admin management (except read-like setting endpoints)
 	privilegedPrefixes := []string{"/setting/", "/nodes/", "/hosts/", "/xray/", "/users/"}
 	if u.Role == model.RoleViewer || u.Role == model.RoleCreator || u.Role == model.RoleEditor || u.Role == model.RoleAdmin {
-		for _, p := range privilegedPrefixes {
-			if len(rel) >= len(p) && rel[:len(p)] == p {
-				// /users/me is allowed for everyone (handled separately — but enforceRBAC sees /users/me)
-				if rel == "/users/me" {
-					break
+		if readSettingAllow[rel] {
+			// skip privileged block for read-like setting endpoints
+		} else {
+			for _, p := range privilegedPrefixes {
+				if len(rel) >= len(p) && rel[:len(p)] == p {
+					// /users/me is allowed for everyone (handled separately — but enforceRBAC sees /users/me)
+					if rel == "/users/me" {
+						break
+					}
+					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "msg": "forbidden: insufficient role"})
+					return
 				}
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "msg": "forbidden: insufficient role"})
-				return
 			}
 		}
 		// also block xray/server restart etc
@@ -237,6 +243,10 @@ func (a *APIController) enforceRBAC(c *gin.Context) {
 			"/clients/onlines": true,
 			"/clients/onlinesByGuid": true,
 			"/clients/lastOnline": true,
+			"/setting/all": true,
+			"/setting/defaultSettings": true,
+			"/setting/factoryDefaults": true,
+			"/setting/getDefaultJsonConfig": true,
 		}
 		if isMutating && !allowed[rel] {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "msg": "creator: can only create clients"})
