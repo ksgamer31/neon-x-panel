@@ -52,6 +52,20 @@ export default function AdminsPage(){
     onSuccess:()=>{ msgApi.success('Deleted'); qc.invalidateQueries({queryKey:['admins']}); },
     onError:(e:any)=> msgApi.error(e.message),
   });
+
+  const roleMut = useMutation({
+    mutationFn: async ({ id, role }: { id: number; role: string }) => {
+      const r = (await HttpUtil.post(`/panel/api/users/update/${id}`, { role }, JSON_HEADERS)) as any;
+      if (!r?.success) throw new Error(r?.msg || 'failed');
+      return r;
+    },
+    onSuccess: () => {
+      msgApi.success('Role updated successfully');
+      qc.invalidateQueries({ queryKey: ['admins'] });
+    },
+    onError: (e: any) => msgApi.error(e.message),
+  });
+
   const toggleMut = useMutation({
     mutationFn: async(row:AdminUser)=>{
       const r = await HttpUtil.post(`/panel/api/users/update/${row.id}`, {enabled: !row.enabled}, JSON_HEADERS) as any;
@@ -68,7 +82,7 @@ export default function AdminsPage(){
   const cols:any[] = [
     {title:'#', dataIndex:'id', width:64, render:(v:number)=><span style={{color:'#94a3b8', fontWeight:600}}>#{v}</span>},
     {title:'User', dataIndex:'username', render:(v:string, row:AdminUser)=><Space><span style={{width:32,height:32,borderRadius:10,display:'grid',placeItems:'center',background:ROLE_BG[row.role]||'#1e293b',border:`1px solid ${ROLE_COLOR[row.role]||'#334155'}`,color:ROLE_COLOR[row.role]}}><TeamOutlined/></span><span><b style={{color:'#e2e8f0'}}>{v}</b><br/><span style={{fontSize:12,color:'#94a3b8'}}>{row.displayName||'—'}</span></span></Space>},
-    {title:'Role', dataIndex:'role', width:140, render:(v:string)=><Tag style={{borderRadius:999, padding:'2px 10px', fontWeight:700, background:ROLE_BG[v]||'#1e293b', color:ROLE_COLOR[v]||'#94a3b8', border:`1px solid ${ROLE_COLOR[v]}40`}}>{v}</Tag>},
+    {title:'Role', dataIndex:'role', width:160, render:(v:string, row:AdminUser)=><Select value={v} onChange={(val)=>roleMut.mutate({id:row.id, role:val})} options={ROLE_OPTS} size='small' style={{width:'100%'}} />},
     {title:'Status', dataIndex:'enabled', width:110, render:(v:boolean,row:AdminUser)=><Switch checked={v} loading={toggleMut.isPending} onChange={()=>toggleMut.mutate(row)} checkedChildren="active" unCheckedChildren="disabled" style={v?{background:'#06ffa5'}:undefined} />},
     {title:'Inbound Access', dataIndex:'inboundIds', render:(v:string)=> v ? <Tooltip title={v}><Tag style={{maxWidth:160,overflow:'hidden',textOverflow:'ellipsis',background:'rgba(139,92,246,0.12)',border:'1px solid rgba(139,92,246,0.25)',color:'#c4b5fd'}}>{v}</Tag></Tooltip> : <Tag style={{borderRadius:999, background:'rgba(6,255,165,0.12)', color:'#6ee7b7', border:'1px solid rgba(6,255,165,0.22)'}}>all</Tag>},
     {title:'Actions', width:110, render:(_:any,row:AdminUser)=>(

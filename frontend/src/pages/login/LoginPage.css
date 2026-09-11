@@ -411,3 +411,9 @@
 .submit-row {
   margin-bottom: 0;
 }
+
+.login-app h1 { animation: neon-glow 2.5s ease-in-out infinite alternate; }
+@keyframes neon-glow {
+  from { text-shadow: 0 0 10px #06ffa5, 0 0 20px #06ffa5; filter: brightness(1); }
+  to { text-shadow: 0 0 25px #06ffa5, 0 0 50px #8b5cf6; filter: brightness(1.25); }
+}

@@ -172,6 +172,7 @@ export default function LoginPage() {
           </div>
 
           <div className="login-wrapper">
+<div style={{ textAlign: "center", marginBottom: 28 }}><h1 style={{ color: "#fff", fontSize: 36, fontWeight: 900, textShadow: "0 0 15px #06ffa5, 0 0 30px #8b5cf6", letterSpacing: 3, margin: 0 }}>NEON X PANEL</h1><div style={{ color: "#94a3b8", fontSize: 13, fontWeight: 600, letterSpacing: 1, marginTop: 6 }}>ADVANCED MULTI-ADMIN PROXY PLATFORM</div></div>
             {!fetched ? (
               <div className="login-loading">
                 <Spin size="large" />
