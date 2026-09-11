@@ -154,28 +154,48 @@ func (a *APIController) enforceTokenScope(c *gin.Context) {
 }
 
 
-// enforceRBAC restricts mutating endpoints based on logged-in user's Role.
-// Owner/Admin bypass. Viewer = read-only, Creator = can create but not edit/delete, Editor = can create+edit but not settings/nodes.
+// enforceRBAC — Neon X tiered RBAC (owner = *):
+// viewer  (view):  read-only — only GET + read-like POSTs (lists/options/onlines)
+// creator (client-create-only): view + POST /clients/add only; no inbound mutate, no client edit/delete, no settings/nodes/hosts/xray
+// editor  (create+edit): view + inbound create/edit + client create/edit; no delete, no settings/nodes/hosts/xray
+// admin   (creator-full): view + all inbound+client create/edit/delete; no settings/nodes/hosts/xray
+// owner   (): full panel (bypass)
 func (a *APIController) enforceRBAC(c *gin.Context) {
 	u := session.GetLoginUser(c)
 	if u == nil {
-		// token-auth paths already handled by enforceTokenScope; skip
 		c.Next()
 		return
 	}
-	if u.Role == model.RoleOwner || u.Role == model.RoleAdmin || u.Role == "" {
+	if u.Role == model.RoleOwner || u.Role == "" {
 		c.Next()
 		return
 	}
 	rel := relAPIPath(c.FullPath())
 	method := c.Request.Method
-
 	isMutating := method == http.MethodPost || method == http.MethodPut || method == http.MethodDelete || method == http.MethodPatch
 
-	// viewer: block all mutating
+	// All non-owner roles are blocked from settings/nodes/hosts/xray/admin management
+	privilegedPrefixes := []string{"/setting/", "/nodes/", "/hosts/", "/xray/", "/users/"}
+	if u.Role == model.RoleViewer || u.Role == model.RoleCreator || u.Role == model.RoleEditor || u.Role == model.RoleAdmin {
+		for _, p := range privilegedPrefixes {
+			if len(rel) >= len(p) && rel[:len(p)] == p {
+				// /users/me is allowed for everyone (handled separately — but enforceRBAC sees /users/me)
+				if rel == "/users/me" {
+					break
+				}
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "msg": "forbidden: insufficient role"})
+				return
+			}
+		}
+		// also block xray/server restart etc
+		if rel == "/server/restartXrayService" || rel == "/server/getXrayVersion" || rel == "/backuptotgbot" {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "msg": "forbidden: insufficient role"})
+			return
+		}
+	}
+
 	if u.Role == model.RoleViewer {
 		if isMutating {
-			// allow only read-like POSTs
 			readPOST := map[string]bool{
 				"/setting/all": true,
 				"/setting/defaultSettings": true,
@@ -190,9 +210,12 @@ func (a *APIController) enforceRBAC(c *gin.Context) {
 				"/clients/lastOnline": true,
 				"/clients/clientIpsByGuid": true,
 				"/server/clientIps": true,
+				"/clients/list": true,
+				"/clients/list/paged": true,
+				"/clients/get/:email": true,
 			}
 			if !readPOST[rel] {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "msg": "viewer role: read-only"})
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "msg": "viewer: read-only"})
 				return
 			}
 		}
@@ -200,41 +223,50 @@ func (a *APIController) enforceRBAC(c *gin.Context) {
 		return
 	}
 	if u.Role == model.RoleCreator {
-		blocked := map[string]bool{
-			"/inbounds/update/:id": true,
-			"/inbounds/del/:id": true,
-			"/inbounds/:id/resetTraffic": true,
-			"/clients/update/:email": true,
-			"/clients/del/:email": true,
-			"/clients/:email/detach": true,
-			"/clients/resetTraffic/:email": true,
-			"/setting/update": true,
-			"/setting/updateUser": true,
-			"/setting/restartPanel": true,
-			"/server/restartXrayService": true,
-			"/xray/update": true,
+		// creator = client:create only (+ view). Allow only POST /clients/add
+		allowed := map[string]bool{
+			"/clients/add": true,
+			"/clients/bulkCreate": true,
+			// read-like
+			"/inbounds/list": true,
+			"/inbounds/list/slim": true,
+			"/inbounds/options": true,
+			"/clients/list": true,
+			"/clients/list/paged": true,
+			"/clients/get/:email": true,
+			"/clients/onlines": true,
+			"/clients/onlinesByGuid": true,
+			"/clients/lastOnline": true,
 		}
-		if blocked[rel] {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "msg": "creator role: cannot edit/delete"})
+		if isMutating && !allowed[rel] {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "msg": "creator: can only create clients"})
 			return
 		}
 		c.Next()
 		return
 	}
 	if u.Role == model.RoleEditor {
+		// editor: create+edit inbound+client, no delete
 		blocked := map[string]bool{
-			"/setting/update": true,
-			"/setting/updateUser": true,
-			"/setting/restartPanel": true,
-			"/setting/apiTokens/create": true,
-			"/setting/apiTokens/delete/:id": true,
-			"/nodes/add": true,
-			"/nodes/del/:id": true,
+			"/inbounds/del/:id": true,
+			"/inbounds/bulkDel": true,
+			"/inbounds/:id/delAllClients": true,
+			"/clients/del/:email": true,
+			"/clients/bulkDel": true,
+			"/clients/delDepleted": true,
+			"/clients/delOrphans": true,
+			"/clients/:email/detach": true,
+			"/clients/bulkDetach": true,
 		}
 		if blocked[rel] {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "msg": "editor role: insufficient permission"})
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "msg": "editor: cannot delete"})
 			return
 		}
+		c.Next()
+		return
+	}
+	if u.Role == model.RoleAdmin {
+		// admin = full inbound+client (creator-full), no settings/nodes already blocked
 		c.Next()
 		return
 	}

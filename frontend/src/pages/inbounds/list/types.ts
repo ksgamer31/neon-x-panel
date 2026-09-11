@@ -65,6 +65,10 @@ export type RowAction =
 export type GeneralAction = 'import' | 'export' | 'subs' | 'resetInbounds';
 
 export interface InboundListProps {
+  canCreateInbound?: boolean;
+  canEditInbound?: boolean;
+  canDeleteInbound?: boolean;
+  readOnly?: boolean;
   dbInbounds: DBInboundRecord[];
   clientCount: Record<number, ClientCountEntry>;
   onlineClients: string[];

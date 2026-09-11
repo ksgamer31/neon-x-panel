@@ -41,6 +41,7 @@ import { HttpUtil } from '@/utils';
 import { formatPanelVersion } from '@/lib/panel-version';
 import { pauseAnimationsUntilLeave, useTheme } from '@/hooks/useTheme';
 import { useAllSettings } from '@/api/queries/useAllSettings';
+import { useAuth } from '@/hooks/useAuth';
 import { useCommandPalette } from '@/components/command-palette/useCommandPalette';
 import './AppSidebar.css';
 
@@ -185,6 +186,7 @@ export default function AppSidebar() {
   const navigate = useNavigate();
   const { pathname, hash } = useLocation();
   const { allSetting } = useAllSettings();
+  const { role, canAccessSettings, canAccessNodes, canAccessHosts, canAccessXray, canManageAdmins } = useAuth();
   const showSubFormats = !!(allSetting.subJsonEnable || allSetting.subClashEnable);
   const showSubBalancers = !!allSetting.subJsonEnable;
 
@@ -221,22 +223,32 @@ export default function AppSidebar() {
   const panelVersion = window.X_UI_CUR_VER || '';
 
   const tabs = useMemo<{ key: string; icon: IconName; title: string }[]>(
-    () => [
-      { key: '/', icon: 'dashboard', title: t('menu.dashboard') },
-      { key: '/inbounds', icon: 'inbound', title: t('menu.inbounds') },
-      { key: '/clients', icon: 'team', title: t('menu.clients') },
-      { key: '/groups', icon: 'groups', title: t('menu.groups') },
-      { key: '/nodes', icon: 'cluster', title: t('menu.nodes') },
-      { key: '/hosts', icon: 'hosts', title: t('menu.hosts') },
-      { key: '/outbound', icon: 'outbound', title: t('menu.outbounds') },
-      { key: '/routing', icon: 'routing', title: t('menu.routing') },
-      { key: '/settings', icon: 'setting', title: t('menu.settings') },
-      { key: '/admins', icon: 'admins', title: 'Admin' },
-      { key: '/xray', icon: 'tool', title: t('menu.xray') },
-      { key: '/api-docs', icon: 'apidocs', title: t('menu.apiDocs') },
-      { key: LOGOUT_KEY, icon: 'logout', title: t('logout') },
-    ],
-    [t],
+    () => {
+      const all = [
+        { key: '/', icon: 'dashboard' as const, title: t('menu.dashboard') },
+        { key: '/inbounds', icon: 'inbound' as const, title: t('menu.inbounds') },
+        { key: '/clients', icon: 'team' as const, title: t('menu.clients') },
+        { key: '/groups', icon: 'groups' as const, title: t('menu.groups') },
+        { key: '/nodes', icon: 'cluster' as const, title: t('menu.nodes') },
+        { key: '/hosts', icon: 'hosts' as const, title: t('menu.hosts') },
+        { key: '/outbound', icon: 'outbound' as const, title: t('menu.outbounds') },
+        { key: '/routing', icon: 'routing' as const, title: t('menu.routing') },
+        { key: '/settings', icon: 'setting' as const, title: t('menu.settings') },
+        { key: '/admins', icon: 'admins' as const, title: 'Admin' },
+        { key: '/xray', icon: 'tool' as const, title: t('menu.xray') },
+        { key: '/api-docs', icon: 'apidocs' as const, title: t('menu.apiDocs') },
+        { key: LOGOUT_KEY, icon: 'logout' as const, title: t('logout') },
+      ];
+      if (!role || role === 'owner') return all;
+      // viewer: only dashboard + inbounds + clients (read-only)
+      if (role === 'viewer') return all.filter(x => ['/', '/inbounds', '/clients', LOGOUT_KEY].includes(x.key));
+      // creator (client-create-only): only clients + dashboard
+      if (role === 'creator') return all.filter(x => ['/', '/clients', LOGOUT_KEY].includes(x.key));
+      // editor / admin (creator-full): inbounds + clients
+      if (role === 'editor' || role === 'admin') return all.filter(x => ['/', '/inbounds', '/clients', LOGOUT_KEY].includes(x.key));
+      return all.filter(x => ['/', '/inbounds', '/clients', LOGOUT_KEY].includes(x.key));
+    },
+    [t, role],
   );
 
   const navItems = useMemo(() => tabs.filter((tab) => tab.icon !== 'logout'), [tabs]);

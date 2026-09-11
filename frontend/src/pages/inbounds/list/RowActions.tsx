@@ -24,6 +24,9 @@ interface RowActionsMenuProps {
   hasClients: boolean;
   onClick: (key: RowAction) => void;
   isMobile?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  readOnly?: boolean;
 }
 
 export function buildRowActionsMenu({
@@ -32,15 +35,21 @@ export function buildRowActionsMenu({
   t,
   isMobile,
   hasClients,
+  canEdit,
+  canDelete,
+  readOnly,
 }: {
   record: DBInboundRecord;
   subEnable: boolean;
   t: (k: string) => string;
   isMobile?: boolean;
   hasClients?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  readOnly?: boolean;
 }): MenuProps['items'] {
   const items: MenuProps['items'] = [];
-  if (isMobile) {
+  if (isMobile && canEdit !== false && !readOnly) {
     items.push({ key: 'edit', icon: <EditOutlined />, label: t('edit') });
   }
   if (showQrCodeMenu(record)) {
@@ -67,20 +76,20 @@ export function buildRowActionsMenu({
     icon: <CopyOutlined />,
     label: t('pages.inbounds.exportInbound'),
   });
-  items.push({
+  if (canEdit !== false && !readOnly) items.push({
     key: 'resetTraffic',
     icon: <RetweetOutlined />,
     label: t('pages.inbounds.resetTraffic'),
   });
-  items.push({ key: 'clone', icon: <BlockOutlined />, label: t('pages.inbounds.clone') });
-  if (isInboundMultiUser(record)) {
+  if (canEdit !== false && !readOnly) items.push({ key: 'clone', icon: <BlockOutlined />, label: t('pages.inbounds.clone') });
+  if (isInboundMultiUser(record) && canEdit !== false && !readOnly) {
     items.push({
       key: 'attachExisting',
       icon: <UsergroupAddOutlined />,
       label: t('pages.inbounds.attachExistingClients'),
     });
   }
-  if (isInboundMultiUser(record) && hasClients) {
+  if (isInboundMultiUser(record) && hasClients && canEdit !== false && !readOnly) {
     items.push({
       key: 'attachClients',
       icon: <UsergroupAddOutlined />,
@@ -106,26 +115,26 @@ export function buildRowActionsMenu({
   } else {
     items.push({ type: 'divider' });
   }
-  items.push({ key: 'delete', icon: <DeleteOutlined />, danger: true, label: t('delete') });
+  if (canDelete !== false && !readOnly) items.push({ key: 'delete', icon: <DeleteOutlined />, danger: true, label: t('delete') });
   return items;
 }
 
-export function RowActionsCell({ record, subEnable, hasClients, onClick }: RowActionsMenuProps) {
+export function RowActionsCell({ record, subEnable, hasClients, onClick, canEdit, canDelete, readOnly }: RowActionsMenuProps) {
   const { t } = useTranslation();
   return (
     <div className="action-buttons">
-      <Button
+      {canEdit !== false && !readOnly && <Button
         type="text"
         size="small"
         style={{ fontSize: 16 }}
         icon={<EditOutlined />}
         aria-label={t('edit')}
         onClick={() => onClick('edit')}
-      />
+      />}
       <Dropdown
         trigger={['click']}
         menu={{
-          items: buildRowActionsMenu({ record, subEnable, t, hasClients }),
+          items: buildRowActionsMenu({ record, subEnable, t, hasClients, canEdit, canDelete, readOnly }),
           onClick: ({ key }) => onClick(key as RowAction),
         }}
       >

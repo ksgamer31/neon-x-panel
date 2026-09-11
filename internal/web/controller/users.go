@@ -24,14 +24,16 @@ func NewUsersController(g *gin.RouterGroup) *UsersController {
 
 func (a *UsersController) initRouter(g *gin.RouterGroup) {
 	grp := g.Group("/users")
-	// only owner/admin can manage users; viewer/creator/editor blocked
-	grp.Use(middleware.RequireRole(model.RoleOwner, model.RoleAdmin))
-	grp.POST("/list", a.list)
-	grp.POST("/create", a.create)
-	grp.POST("/update/:id", a.update)
-	grp.POST("/delete/:id", a.deleteUser)
-	grp.POST("/resetPassword/:id", a.resetPassword)
+	// /me is available to any logged-in user (for RBAC UI)
 	grp.GET("/me", a.me)
+	// management: only owner/admin
+	mgmt := grp.Group("")
+	mgmt.Use(middleware.RequireRole(model.RoleOwner, model.RoleAdmin))
+	mgmt.POST("/list", a.list)
+	mgmt.POST("/create", a.create)
+	mgmt.POST("/update/:id", a.update)
+	mgmt.POST("/delete/:id", a.deleteUser)
+	mgmt.POST("/resetPassword/:id", a.resetPassword)
 }
 
 func (a *UsersController) me(c *gin.Context) {

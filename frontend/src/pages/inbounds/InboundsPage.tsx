@@ -41,6 +41,7 @@ import { useNodesQuery } from '@/api/queries/useNodesQuery';
 import { useHostsQuery } from '@/api/queries/useHostsQuery';
 import { withMtprotoHostEndpoints } from '@/lib/hosts/host-link';
 import AppSidebar from '@/layouts/AppSidebar';
+import { useAuth } from '@/hooks/useAuth';
 const TextModal = lazy(() => import('@/components/feedback/TextModal'));
 import type { TextModalTab } from '@/components/feedback/TextModal';
 const PromptModal = lazy(() => import('@/components/feedback/PromptModal'));
@@ -84,6 +85,7 @@ interface ClientMatchTarget {
 export default function InboundsPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
+  const { role, canCreateInbound, canEditInbound, canDeleteInbound, readOnly } = useAuth();
   const { isMobile } = useMediaQuery();
 
   const {
@@ -463,6 +465,7 @@ export default function InboundsPage() {
   }, [openPrompt, refresh, t]);
 
   const onAddInbound = useCallback(() => {
+    if (readOnly || !canCreateInbound) return;
     setFormMode('add');
     setFormDbInbound(null);
     setFormOpen(true);
@@ -809,6 +812,10 @@ export default function InboundsPage() {
                         onRowAction({ key, dbInbound: dbInbound as unknown as DBInbound })
                       }
                       onBulkDelete={confirmBulkDelete}
+                      canCreateInbound={canCreateInbound}
+                      canEditInbound={canEditInbound}
+                      canDeleteInbound={canDeleteInbound}
+                      readOnly={readOnly}
                     />
                   </Col>
                 </Row>

@@ -52,6 +52,10 @@ export default function InboundList({
   onGeneralAction,
   onRowAction,
   onBulkDelete,
+  canCreateInbound,
+  canEditInbound,
+  canDeleteInbound,
+  readOnly,
 }: InboundListProps) {
   const { t } = useTranslation();
   const [statsRecord, setStatsRecord] = useState<DBInboundRecord | null>(null);
@@ -161,6 +165,9 @@ export default function InboundList({
     trafficDiff,
     onRowAction,
     onSwitchEnable,
+    canEditInbound,
+    canDeleteInbound,
+    readOnly,
   });
 
   const tableScrollX = useMemo(
@@ -204,6 +211,7 @@ export default function InboundList({
             type="primary"
             onClick={onAddInbound}
             icon={<PlusOutlined />}
+            disabled={readOnly || canCreateInbound === false}
             aria-label={t('pages.inbounds.addInbound')}
           >
             {!isMobile && t('pages.inbounds.addInbound')}
@@ -308,6 +316,7 @@ export default function InboundList({
                         <Switch
                           checked={record.enable}
                           size="small"
+                          disabled={readOnly || canEditInbound === false}
                           onChange={(next) => onSwitchEnable(record, next)}
                         />
                         <Dropdown
@@ -320,6 +329,9 @@ export default function InboundList({
                               t,
                               isMobile: true,
                               hasClients: (clientCount[record.id]?.clients || 0) > 0,
+                              canEdit: canEditInbound,
+                              canDelete: canDeleteInbound,
+                              readOnly,
                             }),
                             onClick: ({ key }) =>
                               onRowAction({ key: key as RowAction, dbInbound: record }),

@@ -38,6 +38,9 @@ interface UseInboundColumnsParams {
   trafficDiff: number;
   onRowAction: (action: { key: RowAction; dbInbound: DBInboundRecord }) => void;
   onSwitchEnable: (dbInbound: DBInboundRecord, next: boolean) => void;
+  canEditInbound?: boolean;
+  canDeleteInbound?: boolean;
+  readOnly?: boolean;
 }
 
 export function useInboundColumns({
@@ -52,6 +55,9 @@ export function useInboundColumns({
   trafficDiff,
   onRowAction,
   onSwitchEnable,
+  canEditInbound,
+  canDeleteInbound,
+  readOnly,
 }: UseInboundColumnsParams): TableColumnType<DBInboundRecord>[] {
   const { t } = useTranslation();
   const { datepicker } = useDatepicker();
@@ -117,6 +123,9 @@ export function useInboundColumns({
             record={record}
             subEnable={subEnable}
             hasClients={(clientCount[record.id]?.clients || 0) > 0}
+            canEdit={canEditInbound}
+            canDelete={canDeleteInbound}
+            readOnly={readOnly}
             onClick={(key) => onRowAction({ key, dbInbound: record })}
           />
         ),
@@ -127,7 +136,7 @@ export function useInboundColumns({
         align: 'center',
         width: 80,
         render: (_, record) => (
-          <Switch checked={record.enable} onChange={(next) => onSwitchEnable(record, next)} />
+          <Switch checked={record.enable} disabled={readOnly || canEditInbound === false} onChange={(next) => onSwitchEnable(record, next)} />
         ),
       },
     ];
@@ -461,5 +470,8 @@ export function useInboundColumns({
     datepicker,
     onRowAction,
     onSwitchEnable,
+    canEditInbound,
+    canDeleteInbound,
+    readOnly,
   ]);
 }

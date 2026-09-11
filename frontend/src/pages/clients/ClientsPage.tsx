@@ -70,6 +70,7 @@ import ClientTrafficCell from '@/components/clients/ClientTrafficCell';
 import ClientSpeedTag, { isActiveSpeed } from '@/components/clients/ClientSpeedTag';
 import ClientCardComment from '@/components/clients/ClientCardComment';
 import AppSidebar from '@/layouts/AppSidebar';
+import { useAuth } from '@/hooks/useAuth';
 import { IntlUtil, SizeFormatter } from '@/utils';
 import { setMessageInstance } from '@/utils/messageBus';
 import { LazyMount } from '@/components/utility';
@@ -283,6 +284,7 @@ function sortValueFor(column: string | null, order: 'ascend' | 'descend' | null)
 export default function ClientsPage() {
   const { t } = useTranslation();
   const { isDark, isUltra, antdThemeConfig } = useTheme();
+  const { role: authRole, canCreateClient, canEditClient, canDeleteClient, readOnly: clientReadOnly } = useAuth();
   const { datepicker } = useDatepicker();
   const { isMobile } = useMediaQuery();
   const [modal, modalContextHolder] = Modal.useModal();
@@ -638,6 +640,7 @@ export default function ClientsPage() {
   }
 
   function onAdd() {
+    if (clientReadOnly || !canCreateClient) return;
     setFormMode('add');
     setEditingClient(null);
     setEditingAttachedIds([]);
@@ -648,6 +651,7 @@ export default function ClientsPage() {
 
   const onEdit = useCallback(
     async (email: string) => {
+      if (clientReadOnly || !canEditClient) return;
       const row = rowsByEmail.current.get(email);
       if (!row) return;
       setFormMode('edit');
@@ -667,6 +671,7 @@ export default function ClientsPage() {
 
   const onDelete = useCallback(
     (email: string) => {
+      if (clientReadOnly || !canDeleteClient) return;
       const row = rowsByEmail.current.get(email);
       if (!row) return;
       modal.confirm({
@@ -1034,6 +1039,7 @@ export default function ClientsPage() {
           <Switch
             checked={!!record.enable}
             size="small"
+            disabled={clientReadOnly || !canEditClient}
             loading={togglingEmail === record.email}
             onChange={(next) => onToggleEnable(record, next)}
           />
@@ -1364,6 +1370,7 @@ export default function ClientsPage() {
                               type="primary"
                               icon={<PlusOutlined />}
                               onClick={onAdd}
+                              disabled={clientReadOnly || !canCreateClient}
                               aria-label={t('pages.clients.addClients')}
                             >
                               {!isMobile && t('pages.clients.addClients')}
@@ -1767,6 +1774,7 @@ export default function ClientsPage() {
                                       <Switch
                                         checked={!!row.enable}
                                         size="small"
+                                        disabled={clientReadOnly || !canEditClient}
                                         loading={togglingEmail === row.email}
                                         onChange={(next) => onToggleEnable(row, next)}
                                       />

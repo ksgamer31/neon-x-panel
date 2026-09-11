@@ -61,12 +61,18 @@ var validRoles = map[string]bool{
 
 func IsValidRole(r string) bool { return validRoles[r] }
 
-// RolePermissions maps role -> allowed permission keys
+// RolePermissions — Neon X RBAC (spec 2026-09-11):
+// viewer  = only view inbounds+clients (read-only)
+// creator = view + client:create only (can see clients list + create, no inbound mutate, no edit/delete)
+// editor  = view + inbound:create/edit + client:create/edit (add+edit both, no delete/settings/nodes)
+// admin   = view + all inbound+client create/edit/delete (full inbound+client, no settings/nodes) — "creator-full" in spec
+// owner   = * (full panel incl settings/nodes/hosts/xray)
+// Any role not listed defaults to no permission.
 var RolePermissions = map[string]map[string]bool{
 	RoleOwner:   {"*": true},
-	RoleAdmin:   {"view": true, "client:create": true, "client:edit": true, "client:delete": true, "inbound:create": true, "inbound:edit": true, "inbound:delete": true, "settings:view": true, "settings:edit": true, "nodes:manage": true, "hosts:manage": true},
-	RoleEditor:  {"view": true, "client:create": true, "client:edit": true, "client:delete": true, "inbound:create": true, "inbound:edit": true, "inbound:delete": false, "settings:view": false, "settings:edit": false, "nodes:manage": false},
-	RoleCreator: {"view": true, "client:create": true, "client:edit": false, "client:delete": false, "inbound:create": false, "inbound:edit": false},
+	RoleAdmin:   {"view": true, "client:create": true, "client:edit": true, "client:delete": true, "inbound:create": true, "inbound:edit": true, "inbound:delete": true},
+	RoleEditor:  {"view": true, "client:create": true, "client:edit": true, "inbound:create": true, "inbound:edit": true},
+	RoleCreator: {"view": true, "client:create": true},
 	RoleViewer:  {"view": true},
 }
 
