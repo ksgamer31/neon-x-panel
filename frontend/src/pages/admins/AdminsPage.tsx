@@ -18,8 +18,10 @@ const ROLE_OPTS = [
 const ROLE_COLOR:Record<string,string>={owner:'#8b5cf6', admin:'#06ffa5', editor:'#22d3ee', creator:'#a78bfa', viewer:'#64748b'};
 const ROLE_BG:Record<string,string>={owner:'rgba(139,92,246,0.15)', admin:'rgba(6,255,165,0.14)', editor:'rgba(34,211,238,0.14)', creator:'rgba(167,139,250,0.14)', viewer:'rgba(100,116,139,0.14)'};
 
+const JSON_HEADERS = { headers: { 'Content-Type': 'application/json' } } as const;
+
 async function fetchAdmins(): Promise<AdminUser[]>{
-  const msg = await HttpUtil.post('/panel/api/users/list') as any;
+  const msg = await HttpUtil.post('/panel/api/users/list', {}, JSON_HEADERS) as any;
   if(!msg?.success) throw new Error(msg?.msg||'failed');
   return msg.obj as AdminUser[];
 }
@@ -34,7 +36,7 @@ export default function AdminsPage(){
 
   const createMut = useMutation({
     mutationFn: async(v:any)=>{
-      const r = await HttpUtil.post('/panel/api/users/create', v) as any;
+      const r = await HttpUtil.post('/panel/api/users/create', v, JSON_HEADERS) as any;
       if(!r?.success) throw new Error(r?.msg||'failed');
       return r;
     },
@@ -43,7 +45,7 @@ export default function AdminsPage(){
   });
   const deleteMut = useMutation({
     mutationFn: async(id:number)=>{
-      const r = await HttpUtil.post(`/panel/api/users/delete/${id}`) as any;
+      const r = await HttpUtil.post(`/panel/api/users/delete/${id}`, {}, JSON_HEADERS) as any;
       if(!r?.success) throw new Error(r?.msg||'failed');
       return r;
     },
@@ -52,7 +54,7 @@ export default function AdminsPage(){
   });
   const toggleMut = useMutation({
     mutationFn: async(row:AdminUser)=>{
-      const r = await HttpUtil.post(`/panel/api/users/update/${row.id}`, {enabled: !row.enabled}) as any;
+      const r = await HttpUtil.post(`/panel/api/users/update/${row.id}`, {enabled: !row.enabled}, JSON_HEADERS) as any;
       if(!r?.success) throw new Error(r?.msg||'failed');
       return r;
     },
