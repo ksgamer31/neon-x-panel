@@ -174,13 +174,20 @@ func (a *APIController) enforceRBAC(c *gin.Context) {
 	method := c.Request.Method
 	isMutating := method == http.MethodPost || method == http.MethodPut || method == http.MethodDelete || method == http.MethodPatch
 
-	// settings read endpoints needed by clients/inbounds views — allow for all non-owner roles
-	readSettingAllow := map[string]bool{"/setting/all": true, "/setting/defaultSettings": true, "/setting/factoryDefaults": true, "/setting/getDefaultJsonConfig": true}
-	// All non-owner roles are blocked from settings/nodes/hosts/xray/admin management (except read-like setting endpoints)
+// settings/nodes/hosts read endpoints needed by viewers — allow for all non-owner roles
+	readSensitiveAllow := map[string]bool{
+		"/setting/all": true, 
+		"/setting/defaultSettings": true, 
+		"/setting/factoryDefaults": true, 
+		"/setting/getDefaultJsonConfig": true,
+		"/nodes/list": true,
+		"/hosts/list": true,
+	}
+	// All non-owner roles are blocked from settings/nodes/hosts/xray/admin management (except read-like endpoints)
 	privilegedPrefixes := []string{"/setting/", "/nodes/", "/hosts/", "/xray/", "/users/"}
 	if u.Role == model.RoleViewer || u.Role == model.RoleCreator || u.Role == model.RoleEditor || u.Role == model.RoleAdmin {
-		if readSettingAllow[rel] {
-			// skip privileged block for read-like setting endpoints
+		if readSensitiveAllow[rel] {
+			// skip privileged block for read-like setting/nodes/hosts endpoints
 		} else {
 			for _, p := range privilegedPrefixes {
 				if len(rel) >= len(p) && rel[:len(p)] == p {
@@ -247,6 +254,8 @@ func (a *APIController) enforceRBAC(c *gin.Context) {
 			"/setting/defaultSettings": true,
 			"/setting/factoryDefaults": true,
 			"/setting/getDefaultJsonConfig": true,
+			"/nodes/list": true,
+			"/hosts/list": true,
 		}
 		if isMutating && !allowed[rel] {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "msg": "creator: can only create clients"})
