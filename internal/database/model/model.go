@@ -35,7 +35,7 @@ const (
 	AmneziaWG   Protocol = "amneziawg"
 )
 
-// User represents a user account in the 3x-ui panel (KSMRX fork: multi-admin + RBAC).
+// User represents a user account in the 3x-ui panel (Neon X fork: multi-admin + RBAC).
 type User struct {
 	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	Username    string `json:"username" gorm:"uniqueIndex"`

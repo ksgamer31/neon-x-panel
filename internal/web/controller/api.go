@@ -293,7 +293,7 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	// Subscription balancers — client-side balancers for the JSON sub output
 	NewSubBalancerController(api)
 
-	// KSMRX: multi-admin management
+	// Neon X: multi-admin management
 	NewUsersController(api)
 
 	// Extra routes

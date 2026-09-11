@@ -3,20 +3,20 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
-    <img alt="KSMRX" src="./media/3x-ui-light.png" width="380">
+    <img alt="Neon X" src="./media/3x-ui-light.png" width="380">
   </picture>
 </p>
 
-<h1 align="center">KSMRX — Neon Xray Panel</h1>
+<h1 align="center">Neon X Panel</h1>
 
 <p align="center">
   <b>زیبا · سریع · چندادمین</b> — بهترین فورک فارسی 3X-UI با تم دارک نیونی و مدیریت ادمین سطح‌بندی‌شده<br>
-  <sub>Fork of <a href="https://github.com/MHSanaei/3x-ui">MHSanaei/3x-ui</a> · Xray-core 26.x · Go + Vue 3 · SQLite / PostgreSQL</sub>
+  <sub>Independent panel · Based on Xray-core · Neon dark theme · Xray-core 26.x · Go + Vue 3 · SQLite / PostgreSQL</sub>
 </p>
 
-  <a href="https://github.com/ksgamer31/3x-ui/releases"><img src="https://img.shields.io/github/v/release/ksgamer31/3x-ui?label=KSMRX&labelColor=0a0e1a&color=8b5cf6&style=for-the-badge" alt="Release"></a>
-  <a href="https://github.com/ksgamer31/3x-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/ksgamer31/3x-ui/release.yml?label=build&labelColor=0a0e1a&color=06ffa5&style=for-the-badge" alt="Build"></a>
-  <a href="https://github.com/ksgamer31/3x-ui/releases/latest"><img src="https://img.shields.io/github/downloads/ksgamer31/3x-ui/total?label=downloads&labelColor=0a0e1a&color=22d3ee&style=for-the-badge" alt="Downloads"></a>
+  <a href="https://github.com/ksgamer31/neon-x-panel/releases"><img src="https://img.shields.io/github/v/release/ksgamer31/neon-x-panel?label=Neon X&labelColor=0a0e1a&color=8b5cf6&style=for-the-badge" alt="Release"></a>
+  <a href="https://github.com/ksgamer31/neon-x-panel/actions"><img src="https://img.shields.io/github/actions/workflow/status/ksgamer31/neon-x-panel/release.yml?label=build&labelColor=0a0e1a&color=06ffa5&style=for-the-badge" alt="Build"></a>
+  <a href="https://github.com/ksgamer31/neon-x-panel/releases/latest"><img src="https://img.shields.io/github/downloads/ksgamer31/neon-x-panel/total?label=downloads&labelColor=0a0e1a&color=22d3ee&style=for-the-badge" alt="Downloads"></a>
   <a href="https://www.gnu.org/licenses/gpl-3.0.en.html"><img src="https://img.shields.io/badge/license-GPL%20V3-0a0e1a?labelColor=22d3ee&color=8b5cf6&style=for-the-badge" alt="License"></a>
   <img src="https://img.shields.io/badge/theme-neon%20dark-0a0e1a?labelColor=8b5cf6&color=06ffa5&style=for-the-badge" alt="Theme">
   <img src="https://img.shields.io/badge/RBAC-multi--admin-0a0e1a?labelColor=06ffa5&color=8b5cf6&style=for-the-badge" alt="RBAC">
@@ -26,12 +26,12 @@
 </p>
 
 <p align="center">
-  <code>bash &lt;(curl -Ls https://raw.githubusercontent.com/ksgamer31/3x-ui/main/install.sh) v1.0.6-ksmrx</code>
+  <code>bash &lt;(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh) v1.0.0</code>
 </p>
 
 ---
 
-## ✨ Why KSMRX?
+## ✨ Why Neon X?
 
 | Feature | Details |
 |---|---|
@@ -56,17 +56,17 @@
 
 > Manage at **`/panel/admins`** — create, change role, enable/disable, reset password. `inboundIds = []` means all, e.g. `[1,3]` limits to those inbounds.
 
-**KSMRX** is an enhanced, Persian-friendly fork of 3X-UI — an advanced open-source web panel for [Xray-core](https://github.com/XTLS/Xray-core). Original project by [MHSanaei](https://github.com/MHSanaei/3x-ui).
+**Neon X** is an enhanced, Persian-friendly fork of 3X-UI — an advanced open-source web panel for [Xray-core](https://github.com/XTLS/Xray-core). Original project by [MHSanaei](https://github.com/MHSanaei/3x-ui).
 
 > [!IMPORTANT]
 > For personal use only. Do not use for illegal purposes or in production without hardening.
 
-## ✨ KSMRX Edition — What's New
+## ✨ Neon X Edition — What's New
 
 - **Neon Dark Theme** — purple-cyan glow, glass cards, gradient brand — dark mode is now gorgeous.
 - **Multi-Admin RBAC** — `viewer` (read-only), `creator` (create clients only), `editor` (create+edit, no settings), `admin` / `owner` (full). Per-admin inbound scoping.
 - **Admin Panel** — `/panel/admins` to manage users, roles, enable/disable, reset password.
-- **Fork: `ksgamer31/3x-ui`** — easy install stays compatible.
+- **Fork: `ksgamer31/neon-x-panel`** — easy install stays compatible.
 
 ## Screenshots
 
@@ -95,7 +95,7 @@
 
 </details>
 
-> KSMRX neon in dark mode: gradient **KSMRX** logo in sidebar, neon-bordered cards, purple→cyan gradient buttons with glow on hover.
+> Neon X neon in dark mode: gradient **Neon X** logo in sidebar, neon-bordered cards, purple→cyan gradient buttons with glow on hover.
 
 ---
 
@@ -104,23 +104,23 @@
 ### One-line install (recommended)
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/3x-ui/main/install.sh) v1.0.6-ksmrx
+bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh)
 ```
 
-Once `v1.0.6-ksmrx` is `latest` (it is), the short form also works:
+Once `v1.0.0` is `latest` (it is), the short form also works:
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/3x-ui/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh)
 ```
 
 ### Specific version / dev channel
 
 ```bash
 # a specific tag
-bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/3x-ui/main/install.sh) v1.0.6-ksmrx
+bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh)
 
 # rolling dev (latest commit on main, not stable)
-bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/3x-ui/main/install.sh) dev-latest
+bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh)
 ```
 
 During install a random username / password / path is generated. Afterwards:
@@ -128,7 +128,7 @@ During install a random username / password / path is generated. Afterwards:
 ```bash
 x-ui              # management menu
 x-ui settings     # show settings
-x-ui update       # update to latest KSMRX
+x-ui update       # update to latest Neon X
 x-ui uninstall    # remove
 ```
 
@@ -137,7 +137,7 @@ Result is saved to `/etc/x-ui/install-result.env` (mode 600).
 ### Unattended (cloud-init)
 
 ```bash
-XUI_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/3x-ui/main/install.sh) v1.0.6-ksmrx
+XUI_NONINTERACTIVE=1 bash <(curl -Ls https://raw.githubusercontent.com/ksgamer31/neon-x-panel/main/install.sh)
 cat /etc/x-ui/install-result.env
 ```
 
@@ -230,4 +230,4 @@ See [CONTRIBUTING.md](/CONTRIBUTING.md).
 
 ## Stargazers over Time
 
-[![Stargazers over time](https://starchart.cc/ksgamer31/3x-ui.svg?variant=adaptive)](https://starchart.cc/ksgamer31/3x-ui)
+[![Stargazers over time](https://starchart.cc/ksgamer31/neon-x-panel.svg?variant=adaptive)](https://starchart.cc/ksgamer31/neon-x-panel)

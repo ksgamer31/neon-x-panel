@@ -173,7 +173,7 @@ func (s *UserService) UpdateFirstUser(username string, password string) error {
 	return db.Save(user).Error
 }
 
-// --- KSMRX multi-admin RBAC ---
+// --- Neon X multi-admin RBAC ---
 
 func (s *UserService) ListUsers() ([]model.User, error) {
 	db := database.GetDB()

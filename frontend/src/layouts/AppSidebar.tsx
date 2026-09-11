@@ -49,7 +49,7 @@ const DONATE_URL = 'https://donate.sanaei.dev/';
 // Mac glyph to the Linux and Windows operators who are most of this panel's.
 const SHORTCUT_MODIFIER = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent) ? '⌘' : 'Ctrl';
 const DOCS_URL = 'https://docs.sanaei.dev/';
-const REPO_URL = 'https://github.com/ksgamer31/3x-ui';
+const REPO_URL = 'https://github.com/ksgamer31/neon-x-panel';
 const LOGOUT_KEY = '__logout__';
 const RAIL_WIDTH = 72;
 const SIDER_WIDTH = 220;
@@ -120,7 +120,7 @@ function DocsButton({ ariaLabel }: { ariaLabel: string }) {
 
 function VersionBadge({ version, collapsed }: { version: string; collapsed?: boolean }) {
   if (!version) return null;
-  const label = `KSMRX ${formatPanelVersion(version)}`;
+  const label = `Neon X ${formatPanelVersion(version)}`;
   return (
     <a
       href={REPO_URL}
@@ -375,7 +375,7 @@ export default function AppSidebar() {
       >
         <div className="sider-brand">
           <div className="brand-block">
-            <span className="brand-text">{railCollapsed ? 'KS' : 'KSMRX'}</span>
+            <span className="brand-text">{railCollapsed ? 'NX' : 'NEON X'}</span>
           </div>
           {!railCollapsed && (
             <div className="brand-actions">
@@ -463,7 +463,7 @@ export default function AppSidebar() {
       >
         <div className="drawer-header">
           <div className="brand-block">
-            <span className="drawer-brand">KSMRX</span>
+            <span className="drawer-brand">NEON X</span>
           </div>
           <div className="drawer-header-actions">
             <DocsButton ariaLabel={t('menu.docs') || 'Documentation'} />

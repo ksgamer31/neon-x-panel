@@ -93,7 +93,7 @@ export default function AdminsPage(){
                     <div>
                       <Typography.Title level={4} style={{margin:0, color:'#fff', lineHeight:1.1}}>
                         <span style={{background:'linear-gradient(135deg,#a78bfa 0%, #5eead4 100%)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent'}}>Admin</span>
-                        <span style={{color:'#64748b', fontWeight:500}}> — KSMRX</span>
+                        <span style={{color:'#64748b', fontWeight:500}}> — NEON X</span>
                       </Typography.Title>
                       <div style={{color:'#94a3b8', fontSize:13, marginTop:4}}>
                         <b style={{color:'#c4b5fd'}}>Viewer</b> read only · <b style={{color:'#a78bfa'}}>Creator</b> create only · <b style={{color:'#22d3ee'}}>Editor</b> create+edit · <b style={{color:'#6ee7b7'}}>Admin/Owner</b> full

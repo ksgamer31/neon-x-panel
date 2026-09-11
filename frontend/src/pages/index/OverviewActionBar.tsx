@@ -179,7 +179,7 @@ export default function OverviewActionBar({
       ) : (
         <Tooltip title={t('pages.index.updatePanel')}>
           <button type="button" className="ov-panel-version ov-mono" onClick={onOpenPanelUpdate}>
-            {`KSMRX ${formatPanelVersion(panelVersion)}`}
+            {`Neon X ${formatPanelVersion(panelVersion)}`}
           </button>
         </Tooltip>
       )}
