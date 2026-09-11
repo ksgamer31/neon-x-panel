@@ -8,11 +8,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawgnet"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/mtproto"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/amneziawg"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/amneziawgnet"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/database/model"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/mtproto"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/xray"
 )
 
 type LocalDeps struct {

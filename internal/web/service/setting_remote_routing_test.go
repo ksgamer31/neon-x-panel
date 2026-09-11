@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/web/entity"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/web/entity"
 )
 
 func TestValidateRemoteRoutingURLSettings(t *testing.T) {

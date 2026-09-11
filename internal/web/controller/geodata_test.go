@@ -16,9 +16,9 @@ import (
 	xraygeodata "github.com/xtls/xray-core/common/geodata"
 	"google.golang.org/protobuf/proto"
 
-	xuilogger "github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/xray/geodata"
+	xuilogger "github.com/ksgamer31/neon-x-panel/v3/internal/logger"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/web/service"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/xray/geodata"
 )
 
 func newGeodataEngine(t *testing.T) *gin.Engine {

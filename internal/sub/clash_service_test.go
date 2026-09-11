@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/amneziawg"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/database/model"
+	wgutil "github.com/ksgamer31/neon-x-panel/v3/internal/util/wireguard"
 )
 
 func TestEnsureUniqueProxyNames(t *testing.T) {

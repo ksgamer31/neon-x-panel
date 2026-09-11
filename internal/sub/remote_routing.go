@@ -16,11 +16,11 @@ import (
 
 	yaml "github.com/goccy/go-yaml"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/logger"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/netsafe"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/database"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/database/model"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/logger"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/util/common"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/util/netsafe"
 )
 
 // Remote sources reuse the existing settings fields (one HTTPS URL = remote,

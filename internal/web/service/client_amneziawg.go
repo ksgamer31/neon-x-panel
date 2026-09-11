@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/amneziawg"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	wgutil "github.com/mhsanaei/3x-ui/v3/internal/util/wireguard"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/amneziawg"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/database/model"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/util/common"
+	wgutil "github.com/ksgamer31/neon-x-panel/v3/internal/util/wireguard"
 )
 
 // defaultAmneziaWGSubnetBases resolves the /CIDR bases new peer addresses are

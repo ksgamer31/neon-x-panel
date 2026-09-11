@@ -4,10 +4,10 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/middleware"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/panel"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/session"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/database/model"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/web/middleware"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/web/service/panel"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/web/session"
 
 	"github.com/gin-gonic/gin"
 )

@@ -56,7 +56,7 @@
 
 > Manage at **`/panel/admins`** — create, change role, enable/disable, reset password. `inboundIds = []` means all, e.g. `[1,3]` limits to those inbounds.
 
-**Neon X** is an enhanced, Persian-friendly fork of 3X-UI — an advanced open-source web panel for [Xray-core](https://github.com/XTLS/Xray-core). Original project by [MHSanaei](https://github.com/MHSanaei/3x-ui).
+**Neon X** is an enhanced, Persian-friendly fork of 3X-UI — an advanced open-source web panel for [Xray-core](https://github.com/XTLS/Xray-core). Original project by [MHSanaei](https://github.com/ksgamer31/neon-x-panel).
 
 > [!IMPORTANT]
 > For personal use only. Do not use for illegal purposes or in production without hardening.

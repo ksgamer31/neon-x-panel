@@ -11,7 +11,7 @@
 
 <p align="center">
   <b>زیبا · سریع · چندادمین</b> — بهترین فورک فارسی 3X-UI با تم دارک نیونی و مدیریت ادمین چندسطحی<br>
-  <sub>بر پایهٔ <a href="https://github.com/MHSanaei/3x-ui">MHSanaei/3x-ui</a> · Xray-core 26.x · Go + Vue 3 · SQLite / PostgreSQL</sub>
+  <sub>بر پایهٔ <a href="https://github.com/ksgamer31/neon-x-panel">ksgamer31/neon-x-panel</a> · Xray-core 26.x · Go + Vue 3 · SQLite / PostgreSQL</sub>
 </p>
 
   <a href="https://github.com/ksgamer31/neon-x-panel/releases"><img src="https://img.shields.io/github/v/release/ksgamer31/neon-x-panel?label=Neon X&labelColor=0a0e1a&color=8b5cf6&style=for-the-badge" alt="Release"></a>
@@ -56,7 +56,7 @@
 
 > مدیریت از **`/panel/admins`** — ساخت، تغییر نقش، فعال/غیرفعال، ریست پسورد. `inboundIds = []` یعنی همه، مثلا `[1,3]` فقط آن اینباندها.
 
-**Neon X** نسخهٔ بهبودیافته و فارسی‌دوستِ 3X-UI — پنل متن‌باز مدیریت [Xray-core](https://github.com/XTLS/Xray-core) است. پروژهٔ اصلی از [MHSanaei](https://github.com/MHSanaei/3x-ui).
+**Neon X** نسخهٔ بهبودیافته و فارسی‌دوستِ 3X-UI — پنل متن‌باز مدیریت [Xray-core](https://github.com/XTLS/Xray-core) است. پروژهٔ اصلی از [MHSanaei](https://github.com/ksgamer31/neon-x-panel).
 
 > [!IMPORTANT]
 > فقط برای استفادهٔ شخصی. برای کار غیرقانونی یا محیط پروداکشن بدون امن‌سازی استفاده نکنید.

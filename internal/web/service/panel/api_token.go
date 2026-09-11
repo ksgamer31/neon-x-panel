@@ -8,11 +8,11 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/mhsanaei/3x-ui/v3/internal/database"
-	"github.com/mhsanaei/3x-ui/v3/internal/database/model"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/common"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/crypto"
-	"github.com/mhsanaei/3x-ui/v3/internal/util/random"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/database"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/database/model"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/util/common"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/util/crypto"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/util/random"
 )
 
 type ApiTokenService struct{}

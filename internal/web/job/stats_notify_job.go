@@ -1,8 +1,8 @@
 package job
 
 import (
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service"
-	"github.com/mhsanaei/3x-ui/v3/internal/web/service/tgbot"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/web/service"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/web/service/tgbot"
 )
 
 // LoginStatus represents the status of a login attempt.
