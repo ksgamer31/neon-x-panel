@@ -129,10 +129,47 @@ export default function LoginPage() {
 
   const themeIcon = !isDark ? <SunOutlined /> : !isUltra ? <MoonOutlined /> : <MoonFilled />;
 
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 44 }, (_, i) => ({
+        left: (i * 37.7 + 13) % 100,
+        top: (i * 53.3 + 7) % 100,
+        size: 2 + ((i * 7) % 3),
+        delay: -((i * 0.53) % 7),
+        dur: 5 + ((i * 13) % 7),
+      })),
+    [],
+  );
+
   return (
     <ConfigProvider theme={antdThemeConfig}>
       {messageContextHolder}
       <Layout className={pageClass}>
+        <div className="meta-bg" aria-hidden="true">
+          <div className="meta-grid" />
+          <div className="meta-orbs">
+            <span className="orb orb-a" />
+            <span className="orb orb-b" />
+            <span className="orb orb-c" />
+          </div>
+          <div className="meta-particles">
+            {particles.map((pt, i) => (
+              <span
+                key={i}
+                className="pt"
+                style={{
+                  left: `${pt.left}%`,
+                  top: `${pt.top}%`,
+                  width: pt.size,
+                  height: pt.size,
+                  animationDelay: `${pt.delay}s`,
+                  animationDuration: `${pt.dur}s`,
+                }}
+              />
+            ))}
+          </div>
+          <div className="meta-vignette" />
+        </div>
         <Layout.Content className="login-content">
           <div className="login-toolbar">
             <Button
@@ -173,6 +210,7 @@ export default function LoginPage() {
 
           <div className="login-wrapper">
             <div className="login-header">
+              <div className="neon-badge">NEON X</div>
               <h1 className="neon-title">NEON X PANEL</h1>
               <div className="neon-subtitle">ADVANCED MULTI-ADMIN PROXY PLATFORM</div>
             </div>
