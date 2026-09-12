@@ -23,6 +23,8 @@ export function useStatusQuery() {
     refetchInterval: POLL_INTERVAL_MS,
     refetchIntervalInBackground: false,
     staleTime: 0,
+    retry: 3,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 8000),
   });
 
   const status = useMemo(() => query.data ?? new Status(), [query.data]);
@@ -30,10 +32,15 @@ export function useStatusQuery() {
     await query.refetch();
   };
 
+  const hasData = query.data !== undefined;
   return {
     status,
-    fetched: query.data !== undefined || query.isError,
-    fetchError: query.error ? (query.error as Error).message : '',
+    hasData,
+    fetched: hasData || query.isError,
+    // Only surface the error when we have NO data at all (first load).
+    // On refetch failure (e.g. refresh click, xray restarting) keep showing
+    // the last good dashboard instead of dropping to the error page.
+    fetchError: !hasData && query.error ? (query.error as Error).message : '',
     refresh,
   };
 }
