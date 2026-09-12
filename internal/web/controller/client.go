@@ -7,6 +7,7 @@ import (
 
 	"github.com/ksgamer31/neon-x-panel/v3/internal/database/model"
 	"github.com/ksgamer31/neon-x-panel/v3/internal/web/service"
+	"github.com/ksgamer31/neon-x-panel/v3/internal/web/session"
 	"github.com/ksgamer31/neon-x-panel/v3/internal/web/websocket"
 
 	"github.com/gin-gonic/gin"
@@ -184,6 +185,9 @@ func (a *ClientController) create(c *gin.Context) {
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
+	}
+	if u := session.GetLoginUser(c); u != nil {
+		payload.CreatedBy = u.Id
 	}
 	needRestart, err := a.clientService.Create(&a.inboundService, &payload)
 	// Flagged before the error check: a partly-applied create leaves clients
@@ -443,6 +447,13 @@ func (a *ClientController) bulkCreate(c *gin.Context) {
 	if err := c.ShouldBindJSON(&payloads); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
+	}
+	if u := session.GetLoginUser(c); u != nil {
+		for i := range payloads {
+			if payloads[i].CreatedBy == 0 {
+				payloads[i].CreatedBy = u.Id
+			}
+		}
 	}
 	result, needRestart, err := a.clientService.BulkCreate(&a.inboundService, payloads)
 	if err != nil {

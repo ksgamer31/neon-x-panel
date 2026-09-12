@@ -43,7 +43,7 @@ func (a *UsersController) me(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "obj": gin.H{
-		"id": u.Id, "username": u.Username, "role": u.Role, "enabled": u.Enabled, "displayName": u.DisplayName, "inboundIds": u.InboundIds,
+		"id": u.Id, "username": u.Username, "role": u.Role, "enabled": u.Enabled, "displayName": u.DisplayName, "inboundIds": u.InboundIds, "quotaGB": u.QuotaGB,
 	}})
 }
 
@@ -61,11 +61,34 @@ func (a *UsersController) list(c *gin.Context) {
 		Enabled     bool   `json:"enabled"`
 		DisplayName string `json:"displayName"`
 		InboundIds  string `json:"inboundIds"`
+		QuotaGB     int64  `json:"quotaGB"`
+		QuotaUsed   int64  `json:"quotaUsed"`
+		QuotaPct    int    `json:"quotaPct"`
+	}
+	// Compute per-admin traffic usage for quota display (sum of client_traffics for clients created by each admin).
+	quotaUsedByUser := map[int]int64{}
+	if len(users) > 0 {
+		type row struct { CreatedBy int `gorm:"column:created_by"`; Used int64 `gorm:"column:used"` }
+		var rows []row
+		// Only count traffic for admins that have clients; missing admins stay 0.
+		_ = a.userService.DB().Table("clients c").Select("c.created_by as created_by, COALESCE(SUM(ct.up + ct.down),0) as used").Joins("JOIN client_traffics ct ON ct.email = c.email").Group("c.created_by").Scan(&rows).Error
+		for _, r := range rows {
+			quotaUsedByUser[r.CreatedBy] = r.Used
+		}
 	}
 	out := make([]safeUser, 0, len(users))
 	for _, u := range users {
 		if u.Role == "" { u.Role = model.RoleOwner }
-		out = append(out, safeUser{u.Id, u.Username, u.Role, u.Enabled, u.DisplayName, u.InboundIds})
+		used := quotaUsedByUser[u.Id]
+		pct := 0
+		if u.QuotaGB > 0 {
+			quotaBytes := u.QuotaGB * 1024 * 1024 * 1024
+			if quotaBytes > 0 {
+				pct = int(used * 100 / quotaBytes)
+				if pct > 100 { pct = 100 }
+			}
+		}
+		out = append(out, safeUser{u.Id, u.Username, u.Role, u.Enabled, u.DisplayName, u.InboundIds, u.QuotaGB, used, pct})
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "obj": out})
 }
@@ -76,6 +99,7 @@ type createUserForm struct {
 	Role        string `json:"role"`
 	DisplayName string `json:"displayName"`
 	InboundIds  string `json:"inboundIds"`
+	QuotaGB     int64  `json:"quotaGB"`
 }
 
 func (a *UsersController) create(c *gin.Context) {
@@ -90,7 +114,7 @@ func (a *UsersController) create(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"success": false, "msg": "only owner can create owner/admin"})
 		return
 	}
-	u, err := a.userService.CreateUser(f.Username, f.Password, f.Role, f.DisplayName, f.InboundIds)
+	u, err := a.userService.CreateUser(f.Username, f.Password, f.Role, f.DisplayName, f.InboundIds, f.QuotaGB)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": false, "msg": err.Error()})
 		return
@@ -103,6 +127,7 @@ type updateUserForm2 struct {
 	Enabled     *bool   `json:"enabled"`
 	DisplayName *string `json:"displayName"`
 	InboundIds  *string `json:"inboundIds"`
+	QuotaGB     *int64  `json:"quotaGB"`
 }
 
 func (a *UsersController) update(c *gin.Context) {
@@ -122,7 +147,7 @@ func (a *UsersController) update(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"success": false, "msg": "only owner can modify owner"})
 		return
 	}
-	if err := a.userService.UpdateUserRole(id, f.Role, f.Enabled, f.DisplayName, f.InboundIds); err != nil {
+	if err := a.userService.UpdateUserRole(id, f.Role, f.Enabled, f.DisplayName, f.InboundIds, f.QuotaGB); err != nil {
 		c.JSON(http.StatusOK, gin.H{"success": false, "msg": err.Error()})
 		return
 	}

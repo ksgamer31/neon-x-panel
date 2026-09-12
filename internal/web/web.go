@@ -305,6 +305,7 @@ const (
 	// stacks overlapping samplers; subscribers rate-limit alerts to 1/min anyway.
 	cadenceCPUAlarm    = "@every 1m"
 	cadenceMemoryAlarm = "@every 1m"
+	cadenceAdminQuota  = "@every 1m"
 )
 
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
@@ -350,6 +351,8 @@ func (s *Server) startTask(restartXray bool, loc *time.Location) {
 	_, _ = s.cron.AddJob(cadenceOutboundSub, job.NewOutboundSubscriptionJob())
 
 	_, _ = s.cron.AddJob(cadenceReapOrphans, job.NewReapSyncOrphansJob())
+
+	_, _ = s.cron.AddJob(cadenceAdminQuota, job.NewAdminQuotaJob())
 
 	// Warm permanent routing URLs immediately and refresh them outside the
 	// latency-sensitive subscription request path.

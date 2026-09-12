@@ -77,6 +77,9 @@ func applyClientRecordMerge(row *model.ClientRecord, incoming *model.ClientRecor
 	if incoming.CreatedAt > 0 && (row.CreatedAt == 0 || incoming.CreatedAt < row.CreatedAt) {
 		row.CreatedAt = incoming.CreatedAt
 	}
+	if incoming.CreatedBy != 0 && row.CreatedBy == 0 {
+		row.CreatedBy = incoming.CreatedBy
+	}
 }
 
 // SyncInbound makes the inbound's client records and links match clients

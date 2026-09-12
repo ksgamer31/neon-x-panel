@@ -175,6 +175,8 @@ func (s *UserService) UpdateFirstUser(username string, password string) error {
 
 // --- Neon X multi-admin RBAC ---
 
+func (s *UserService) DB() *gorm.DB { return database.GetDB() }
+
 func (s *UserService) ListUsers() ([]model.User, error) {
 	db := database.GetDB()
 	var users []model.User
@@ -193,7 +195,7 @@ func (s *UserService) GetUserByID(id int) (*model.User, error) {
 	return u, nil
 }
 
-func (s *UserService) CreateUser(username, password, role, displayName, inboundIds string) (*model.User, error) {
+func (s *UserService) CreateUser(username, password, role, displayName, inboundIds string, quotaGB int64) (*model.User, error) {
 	if username == "" || password == "" {
 		return nil, errors.New("username and password required")
 	}
@@ -208,7 +210,7 @@ func (s *UserService) CreateUser(username, password, role, displayName, inboundI
 		return nil, err
 	}
 	db := database.GetDB()
-	u := &model.User{Username: username, Password: hashed, Role: role, Enabled: true, DisplayName: displayName, InboundIds: inboundIds}
+	u := &model.User{Username: username, Password: hashed, Role: role, Enabled: true, DisplayName: displayName, InboundIds: inboundIds, QuotaGB: quotaGB}
 	if err := db.Create(u).Error; err != nil {
 		return nil, err
 	}
@@ -230,7 +232,7 @@ func (s *UserService) DeleteUser(id int) error {
 	return db.Delete(&model.User{}, id).Error
 }
 
-func (s *UserService) UpdateUserRole(id int, role string, enabled *bool, displayName *string, inboundIds *string) error {
+func (s *UserService) UpdateUserRole(id int, role string, enabled *bool, displayName *string, inboundIds *string, quotaGB *int64) error {
 	if role != "" && !model.IsValidRole(role) {
 		return errors.New("invalid role")
 	}
@@ -250,6 +252,12 @@ func (s *UserService) UpdateUserRole(id int, role string, enabled *bool, display
 	}
 	if inboundIds != nil {
 		updates["inbound_ids"] = *inboundIds
+	}
+	if quotaGB != nil {
+		if *quotaGB < 0 {
+			return errors.New("quota must be >= 0")
+		}
+		updates["quota_gb"] = *quotaGB
 	}
 	if len(updates) == 0 {
 		return nil

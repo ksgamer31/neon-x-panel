@@ -154,6 +154,9 @@ func (s *ClientService) Create(inboundSvc *InboundService, payload *ClientCreate
 	if client.SubID == "" {
 		client.SubID = uuid.NewString()
 	}
+	if payload.CreatedBy != 0 {
+		client.CreatedBy = payload.CreatedBy
+	}
 	if !client.Enable {
 		client.Enable = true
 	}

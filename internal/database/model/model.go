@@ -45,6 +45,7 @@ type User struct {
 	Enabled     bool   `json:"enabled" gorm:"default:true"`
 	DisplayName string `json:"displayName" gorm:"default:''"`
 	InboundIds  string `json:"inboundIds" gorm:"default:''"` // JSON array string, empty = all
+	QuotaGB     int64  `json:"quotaGB" gorm:"default:0"`     // 0 = unlimited, bytes quota for all clients created by this admin
 }
 
 const (
@@ -952,6 +953,7 @@ type Client struct {
 	TrafficResetDay int    `json:"trafficResetDay,omitempty" form:"trafficResetDay" validate:"omitempty,gte=1,lte=31"`
 	CreatedAt       int64  `json:"created_at,omitempty"` // Creation timestamp
 	UpdatedAt       int64  `json:"updated_at,omitempty"` // Last update timestamp
+	CreatedBy       int    `json:"createdBy,omitempty" gorm:"-"`
 }
 
 type ClientRecord struct {
@@ -990,6 +992,7 @@ type ClientRecord struct {
 	// Owned solely by the node-snapshot sweep, which soft-orphans instead of
 	// deleting; orphans from any other cause stay at zero and are never reaped.
 	SyncOrphanedAt int64 `json:"-" gorm:"column:sync_orphaned_at;default:0"`
+	CreatedBy    int   `json:"createdBy" gorm:"column:created_by;default:0;index:idx_clients_created_by"`
 }
 
 func (ClientRecord) TableName() string { return "clients" }
@@ -1202,6 +1205,7 @@ func (c *Client) ToRecord() *ClientRecord {
 		PrivateKey:     c.PrivateKey,
 		PublicKey:      c.PublicKey,
 		AllowedIPs:     strings.Join(c.AllowedIPs, ","),
+		CreatedBy:      c.CreatedBy,
 		PreSharedKey:   c.PreSharedKey,
 		KeepAlive:      c.KeepAliveSeconds(),
 		ForwardedPorts: c.ForwardedPorts,

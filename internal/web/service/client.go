@@ -69,6 +69,7 @@ type ClientCreatePayload struct {
 	Client     model.Client `json:"client"`
 	InboundIds []int        `json:"inboundIds"`
 	LimitHwid  int          `json:"-"`
+	CreatedBy  int          `json:"-"`
 }
 
 const sqlInChunk = 400

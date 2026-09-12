@@ -1255,6 +1255,14 @@ func migrateUserRBACColumns() error {
 		if !m.HasColumn(&model.User{}, "inbound_ids") {
 			_ = m.AddColumn(&model.User{}, "InboundIds")
 		}
+		if !m.HasColumn(&model.User{}, "quota_gb") {
+			_ = m.AddColumn(&model.User{}, "QuotaGB")
+		}
+	}
+	if m.HasTable(&model.ClientRecord{}) {
+		if !m.HasColumn(&model.ClientRecord{}, "created_by") {
+			_ = m.AddColumn(&model.ClientRecord{}, "CreatedBy")
+		}
 	}
 	return nil
 }
