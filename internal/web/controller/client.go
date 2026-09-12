@@ -13,6 +13,27 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+
+// filterOwnedEmails drops every email a creator did not create.
+// Non-creator callers get the list unchanged.
+func (a *ClientController) filterOwnedEmails(c *gin.Context, emails []string) []string {
+	scope := creatorScope(c)
+	if scope == 0 || len(emails) == 0 {
+		return emails
+	}
+	owned, err := service.OwnedClientEmails(scope)
+	if err != nil {
+		return nil
+	}
+	out := make([]string, 0, len(emails))
+	for _, e := range emails {
+		if _, ok := owned[e]; ok {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
 func notifyClientsChanged() {
 	websocket.BroadcastInvalidate(websocket.MessageTypeClients)
 }
@@ -88,7 +109,7 @@ func (a *ClientController) initRouter(g *gin.RouterGroup) {
 }
 
 func (a *ClientController) list(c *gin.Context) {
-	rows, err := a.clientService.List()
+	rows, err := a.clientService.List(creatorScope(c))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
@@ -102,7 +123,7 @@ func (a *ClientController) listPaged(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
-	resp, err := a.clientService.ListPaged(&a.inboundService, &a.settingService, params)
+	resp, err := a.clientService.ListPaged(&a.inboundService, &a.settingService, params, creatorScope(c))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
@@ -148,6 +169,9 @@ func (a *ClientController) get(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
+	if denyForeignClient(c, rec.CreatedBy) {
+		return
+	}
 	payload, err := a.buildClientPayload(rec)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
@@ -163,7 +187,7 @@ func (a *ClientController) getByTgId(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
-	records, err := a.clientService.GetRecordsByTgID(tgId)
+	records, err := a.clientService.GetRecordsByTgID(tgId, creatorScope(c))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
@@ -209,6 +233,11 @@ func (a *ClientController) create(c *gin.Context) {
 
 func (a *ClientController) update(c *gin.Context) {
 	email := c.Param("email")
+	if rec, err := a.clientService.GetRecordByEmail(nil, email); err == nil {
+		if denyForeignClient(c, rec.CreatedBy) {
+			return
+		}
+	}
 	var req struct {
 		model.Client
 		LimitHwid int `json:"limitHwid"`
@@ -238,6 +267,11 @@ func (a *ClientController) update(c *gin.Context) {
 
 func (a *ClientController) delete(c *gin.Context) {
 	email := c.Param("email")
+	if rec, err := a.clientService.GetRecordByEmail(nil, email); err == nil {
+		if denyForeignClient(c, rec.CreatedBy) {
+			return
+		}
+	}
 	keepTraffic := c.Query("keepTraffic") == "1"
 	needRestart, err := a.clientService.DeleteByEmail(&a.inboundService, email, keepTraffic)
 	// Flagged before the error check: a partly-applied delete already removed
@@ -267,6 +301,11 @@ type externalLinksBody struct {
 
 func (a *ClientController) attach(c *gin.Context) {
 	email := c.Param("email")
+	if rec, err := a.clientService.GetRecordByEmail(nil, email); err == nil {
+		if denyForeignClient(c, rec.CreatedBy) {
+			return
+		}
+	}
 	var body attachDetachBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -290,6 +329,11 @@ func (a *ClientController) attach(c *gin.Context) {
 
 func (a *ClientController) setExternalLinks(c *gin.Context) {
 	email := c.Param("email")
+	if rec, err := a.clientService.GetRecordByEmail(nil, email); err == nil {
+		if denyForeignClient(c, rec.CreatedBy) {
+			return
+		}
+	}
 	var body externalLinksBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -331,6 +375,7 @@ func (a *ClientController) bulkAdjust(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+	req.Emails = a.filterOwnedEmails(c, req.Emails)
 	result, needRestart, err := a.clientService.BulkAdjust(&a.inboundService, req.Emails, req.AddDays, req.AddBytes, req.Flow, req.LimitHwid, req.AdTag)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -359,6 +404,7 @@ func (a *ClientController) bulkAttach(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+	req.Emails = a.filterOwnedEmails(c, req.Emails)
 	result, needRestart, err := a.clientService.BulkAttach(&a.inboundService, req.Emails, req.InboundIds)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -382,6 +428,7 @@ func (a *ClientController) bulkDetach(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+	req.Emails = a.filterOwnedEmails(c, req.Emails)
 	result, needRestart, err := a.clientService.BulkDetach(&a.inboundService, req.Emails, req.InboundIds)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -400,6 +447,7 @@ func (a *ClientController) bulkDelete(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+	req.Emails = a.filterOwnedEmails(c, req.Emails)
 	result, needRestart, err := a.clientService.BulkDelete(&a.inboundService, req.Emails, req.KeepTraffic)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -430,6 +478,7 @@ func (a *ClientController) bulkSetEnable(c *gin.Context, enable bool) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+	req.Emails = a.filterOwnedEmails(c, req.Emails)
 	result, needRestart, err := a.clientService.BulkSetEnable(&a.inboundService, req.Emails, enable)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -484,7 +533,7 @@ func (a *ClientController) delDepleted(c *gin.Context) {
 // envelope. The frontend renders it in a read-only CodeMirror viewer (Copy /
 // Download), so this hands back data rather than streaming a file attachment.
 func (a *ClientController) export(c *gin.Context) {
-	items, err := a.clientService.ExportAll()
+	items, err := a.clientService.ExportAll(creatorScope(c))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -534,6 +583,11 @@ func (a *ClientController) delOrphans(c *gin.Context) {
 
 func (a *ClientController) resetTrafficByEmail(c *gin.Context) {
 	email := c.Param("email")
+	if rec, err := a.clientService.GetRecordByEmail(nil, email); err == nil {
+		if denyForeignClient(c, rec.CreatedBy) {
+			return
+		}
+	}
 	needRestart, err := a.clientService.ResetTrafficByEmail(&a.inboundService, email)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -553,6 +607,11 @@ type trafficUpdateRequest struct {
 
 func (a *ClientController) updateTrafficByEmail(c *gin.Context) {
 	email := c.Param("email")
+	if rec, err := a.clientService.GetRecordByEmail(nil, email); err == nil {
+		if denyForeignClient(c, rec.CreatedBy) {
+			return
+		}
+	}
 	var req trafficUpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -568,6 +627,11 @@ func (a *ClientController) updateTrafficByEmail(c *gin.Context) {
 
 func (a *ClientController) getIps(c *gin.Context) {
 	email := c.Param("email")
+	if rec, err := a.clientService.GetRecordByEmail(nil, email); err == nil {
+		if denyForeignClient(c, rec.CreatedBy) {
+			return
+		}
+	}
 	infos, err := a.inboundService.GetClientIpsWithNodes(email)
 	jsonObj(c, infos, err)
 }
@@ -579,6 +643,11 @@ func (a *ClientController) clientIpsByGuid(c *gin.Context) {
 
 func (a *ClientController) clearIps(c *gin.Context) {
 	email := c.Param("email")
+	if rec, err := a.clientService.GetRecordByEmail(nil, email); err == nil {
+		if denyForeignClient(c, rec.CreatedBy) {
+			return
+		}
+	}
 	if err := a.inboundService.ClearClientIps(email); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)
 		return
@@ -587,11 +656,21 @@ func (a *ClientController) clearIps(c *gin.Context) {
 }
 
 func (a *ClientController) getHwids(c *gin.Context) {
+	if rec, err := a.clientService.GetRecordByEmail(nil, c.Param("email")); err == nil {
+		if denyForeignClient(c, rec.CreatedBy) {
+			return
+		}
+	}
 	infos, err := a.clientService.ListClientHwids(c.Param("email"))
 	jsonObj(c, infos, err)
 }
 
 func (a *ClientController) clearHwids(c *gin.Context) {
+	if rec, err := a.clientService.GetRecordByEmail(nil, c.Param("email")); err == nil {
+		if denyForeignClient(c, rec.CreatedBy) {
+			return
+		}
+	}
 	if err := a.clientService.ClearClientHwids(c.Param("email")); err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.updateSuccess"), err)
 		return
@@ -600,6 +679,11 @@ func (a *ClientController) clearHwids(c *gin.Context) {
 }
 
 func (a *ClientController) deleteHwid(c *gin.Context) {
+	if rec, err := a.clientService.GetRecordByEmail(nil, c.Param("email")); err == nil {
+		if denyForeignClient(c, rec.CreatedBy) {
+			return
+		}
+	}
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -631,6 +715,11 @@ func (a *ClientController) lastOnline(c *gin.Context) {
 
 func (a *ClientController) getTrafficByEmail(c *gin.Context) {
 	email := c.Param("email")
+	if rec, err := a.clientService.GetRecordByEmail(nil, email); err == nil {
+		if denyForeignClient(c, rec.CreatedBy) {
+			return
+		}
+	}
 	traffic, err := a.inboundService.GetClientTrafficByEmail(email)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.trafficGetError"), err)
@@ -640,6 +729,12 @@ func (a *ClientController) getTrafficByEmail(c *gin.Context) {
 }
 
 func (a *ClientController) getSubLinks(c *gin.Context) {
+	if scope := creatorScope(c); scope != 0 {
+		if rec, err := a.clientService.GetRecordBySubID(c.Param("subId")); err != nil || !service.IsOwnedBy(rec, scope) {
+			jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), errClientNotFound)
+			return
+		}
+	}
 	links, err := a.inboundService.GetSubLinks(resolveHost(c), c.Param("subId"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
@@ -649,6 +744,12 @@ func (a *ClientController) getSubLinks(c *gin.Context) {
 }
 
 func (a *ClientController) getClientLinks(c *gin.Context) {
+	if rec, err := a.clientService.GetRecordByEmail(nil, c.Param("email")); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	} else if denyForeignClient(c, rec.CreatedBy) {
+		return
+	}
 	links, err := a.inboundService.GetAllClientLinks(resolveHost(c), c.Param("email"))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
@@ -659,6 +760,11 @@ func (a *ClientController) getClientLinks(c *gin.Context) {
 
 func (a *ClientController) detach(c *gin.Context) {
 	email := c.Param("email")
+	if rec, err := a.clientService.GetRecordByEmail(nil, email); err == nil {
+		if denyForeignClient(c, rec.CreatedBy) {
+			return
+		}
+	}
 	var body attachDetachBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -692,6 +798,7 @@ func (a *ClientController) bulkResetTraffic(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+	req.Emails = a.filterOwnedEmails(c, req.Emails)
 	affected, err := a.clientService.BulkResetTraffic(&a.inboundService, req.Emails)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)

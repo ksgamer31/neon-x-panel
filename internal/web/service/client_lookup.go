@@ -104,13 +104,23 @@ func (s *ClientService) GetInboundIdsForEmail(tx *gorm.DB, email string) ([]int,
 	return ids, nil
 }
 
-func (s *ClientService) GetRecordsByTgID(tgId int64) ([]*model.ClientRecord, error) {
+func (s *ClientService) GetRecordsByTgID(tgId int64, createdBy ...int) ([]*model.ClientRecord, error) {
 	if tgId <= 0 {
 		return nil, errors.New("tg_id must be a positive integer")
 	}
 	var rows []*model.ClientRecord
-	err := database.GetDB().Where("tg_id = ?", tgId).Find(&rows).Error
+	tx := database.GetDB().Where("tg_id = ?", tgId)
+	if len(createdBy) > 0 && createdBy[0] != 0 {
+		tx = tx.Where("created_by = ?", createdBy[0])
+	}
+	err := tx.Find(&rows).Error
 	return rows, err
+}
+
+// IsOwnedBy reports whether a client row belongs to the given admin.
+// Legacy rows (created_by = 0) belong to no creator.
+func IsOwnedBy(rec *model.ClientRecord, adminID int) bool {
+	return rec != nil && adminID != 0 && rec.CreatedBy == adminID
 }
 
 func (s *ClientService) GetByID(id int) (*model.ClientRecord, error) {
@@ -168,10 +178,14 @@ func (s *ClientService) TunnelAllowedIPsByInbound(inboundSvc *InboundService, em
 	return result, nil
 }
 
-func (s *ClientService) List() ([]ClientWithAttachments, error) {
+func (s *ClientService) List(createdBy ...int) ([]ClientWithAttachments, error) {
 	db := database.GetDB()
 	var rows []model.ClientRecord
-	if err := db.Order("id ASC").Find(&rows).Error; err != nil {
+	tx := db.Order("id ASC")
+	if len(createdBy) > 0 && createdBy[0] != 0 {
+		tx = tx.Where("created_by = ?", createdBy[0])
+	}
+	if err := tx.Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	if len(rows) == 0 {

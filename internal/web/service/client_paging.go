@@ -133,6 +133,8 @@ type clientQuery struct {
 	nowMs            int64
 	expireDiffMs     int64
 	trafficDiffBytes int64
+	hasScope         bool
+	scopeCreatedBy   int
 }
 
 type clientQueryJoin struct {
@@ -169,10 +171,29 @@ func newClientQuery(db *gorm.DB, nowMs, expireDiffMs, trafficDiffBytes int64) cl
 	return q
 }
 
+// WithCreatorScope narrows every read built from this query to the rows one
+// admin created. Nil-safe: call only when scoping is wanted.
+func (q clientQuery) WithCreatorScope(createdBy int) clientQuery {
+	q.hasScope = true
+	q.scopeCreatedBy = createdBy
+	return q
+}
+
+// scopeCond is the created_by predicate, empty when unscoped.
+func (q clientQuery) scopeCond() string {
+	if !q.hasScope {
+		return ""
+	}
+	return "c.created_by = " + sqlInt(int64(q.scopeCreatedBy))
+}
+
 func (q clientQuery) from() *gorm.DB {
 	tx := q.db.Table("clients AS c")
 	for _, j := range q.joins {
 		tx = tx.Joins(j.sql, j.args...)
+	}
+	if cond := q.scopeCond(); cond != "" {
+		tx = tx.Where(cond)
 	}
 	return tx
 }
@@ -334,7 +355,7 @@ func (q clientQuery) applyOrder(tx *gorm.DB, sortKey, order string) *gorm.DB {
 // ListPaged returns one page of clients together with the counts the clients
 // page header needs. Every predicate runs in SQL, so the cost tracks the page
 // size rather than the number of clients on the panel.
-func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *SettingService, params ClientPageParams) (*ClientPageResponse, error) {
+func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *SettingService, params ClientPageParams, createdBy ...int) (*ClientPageResponse, error) {
 	db := database.GetDB()
 
 	pageSize := params.PageSize
@@ -361,9 +382,19 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 
 	onlines := inboundSvc.GetOnlineClients()
 	q := newClientQuery(db, time.Now().UnixMilli(), expireDiffMs, trafficDiffBytes)
+	if len(createdBy) > 0 && createdBy[0] != 0 {
+		q = q.WithCreatorScope(createdBy[0])
+	}
+	if len(createdBy) > 0 && createdBy[0] != 0 {
+		onlines = intersectOwnedEmails(db, onlines, createdBy[0])
+	}
 
 	var total int64
-	if err := db.Model(&model.ClientRecord{}).Count(&total).Error; err != nil {
+	if q.hasScope {
+		if err := db.Model(&model.ClientRecord{}).Where("created_by = ?", q.scopeCreatedBy).Count(&total).Error; err != nil {
+			return nil, err
+		}
+	} else if err := db.Model(&model.ClientRecord{}).Count(&total).Error; err != nil {
 		return nil, err
 	}
 
@@ -388,7 +419,7 @@ func (s *ClientService) ListPaged(inboundSvc *InboundService, settingSvc *Settin
 		}
 	}
 
-	groups, err := s.listGroupNames()
+	groups, err := s.listGroupNames(q)
 	if err != nil {
 		return nil, err
 	}
@@ -542,8 +573,12 @@ func (q clientQuery) onlineEmails(onlines []string) ([]string, int, error) {
 	count := 0
 	for _, batch := range chunkStrings(onlines, sqlInChunk) {
 		var page []string
-		if err := q.db.Model(&model.ClientRecord{}).
-			Where("COALESCE(enable, FALSE) = TRUE AND email IN ?", batch).
+		tx := q.db.Model(&model.ClientRecord{}).
+			Where("COALESCE(enable, FALSE) = TRUE AND email IN ?", batch)
+		if q.hasScope {
+			tx = tx.Where("created_by = ?", q.scopeCreatedBy)
+		}
+		if err := tx.
 			Order("id ASC").
 			Pluck("email", &page).Error; err != nil {
 			return nil, 0, err
@@ -560,15 +595,23 @@ func (q clientQuery) onlineEmails(onlines []string) ([]string, int, error) {
 // the stored groups plus any name a client still carries. ListGroups also sums
 // per-client traffic per group, which this page never reads and which costs a
 // full join over client_traffics on every poll.
-func (s *ClientService) listGroupNames() ([]string, error) {
+func (s *ClientService) listGroupNames(scopes ...clientQuery) ([]string, error) {
 	db := database.GetDB()
+	var scope *clientQuery
+	if len(scopes) > 0 && scopes[0].hasScope {
+		scope = &scopes[0]
+	}
 	var stored []string
 	if err := db.Model(&model.ClientGroup{}).Pluck("name", &stored).Error; err != nil {
 		return nil, err
 	}
+	usedTx := db.Model(&model.ClientRecord{}).
+		Where("group_name <> ''")
+	if scope != nil {
+		usedTx = usedTx.Where("created_by = ?", scope.scopeCreatedBy)
+	}
 	var used []string
-	if err := db.Model(&model.ClientRecord{}).
-		Where("group_name <> ''").
+	if err := usedTx.
 		Distinct().
 		Pluck("group_name", &used).Error; err != nil {
 		return nil, err
@@ -682,4 +725,38 @@ func parseCSVInts(raw string) []int {
 		return nil
 	}
 	return out
+}
+
+// intersectOwnedEmails keeps only the online emails one admin created.
+func intersectOwnedEmails(db *gorm.DB, onlines []string, createdBy int) []string {
+	if len(onlines) == 0 {
+		return onlines
+	}
+	owned, err := (&ClientService{}).ownedEmailSet(db, createdBy)
+	if err != nil {
+		return onlines
+	}
+	out := make([]string, 0, len(onlines))
+	for _, e := range onlines {
+		if _, ok := owned[e]; ok {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+func (s *ClientService) ownedEmailSet(db *gorm.DB, createdBy int) (map[string]struct{}, error) {
+	var emails []string
+	if err := db.Model(&model.ClientRecord{}).
+		Where("created_by = ?", createdBy).
+		Pluck("email", &emails).Error; err != nil {
+		return nil, err
+	}
+	out := make(map[string]struct{}, len(emails))
+	for _, e := range emails {
+		if e != "" {
+			out[e] = struct{}{}
+		}
+	}
+	return out, nil
 }

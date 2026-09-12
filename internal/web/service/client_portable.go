@@ -17,10 +17,14 @@ import (
 // /add and /bulkCreate accept, so an exported file round-trips straight back
 // through Import. Clients with no inbound attachment are included with an empty
 // inboundIds list so an export taken before DeleteOrphans can restore them.
-func (s *ClientService) ExportAll() ([]ClientCreatePayload, error) {
+func (s *ClientService) ExportAll(createdBy ...int) ([]ClientCreatePayload, error) {
 	db := database.GetDB()
 	var rows []model.ClientRecord
-	if err := db.Order("id ASC").Find(&rows).Error; err != nil {
+	tx := db.Order("id ASC")
+	if len(createdBy) > 0 && createdBy[0] != 0 {
+		tx = tx.Where("created_by = ?", createdBy[0])
+	}
+	if err := tx.Find(&rows).Error; err != nil {
 		return nil, err
 	}
 	out := make([]ClientCreatePayload, 0, len(rows))

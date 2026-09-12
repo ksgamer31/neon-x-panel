@@ -94,10 +94,19 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 // getInbounds retrieves the list of inbounds for the logged-in user.
 func (a *InboundController) getInbounds(c *gin.Context) {
 	user := session.GetLoginUser(c)
-	inbounds, err := a.inboundService.GetInbounds(user.Id)
+	uid := user.Id
+	if scope := creatorScope(c); scope != 0 {
+		uid = service.OwnerUserID()
+	}
+	inbounds, err := a.inboundService.GetInbounds(uid)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
+	}
+	if scope := creatorScope(c); scope != 0 {
+		if owned, err := service.OwnedClientEmails(scope); err == nil {
+			service.FilterInboundClientsToOwned(inbounds, owned)
+		}
 	}
 	jsonObj(c, inbounds, nil)
 }
@@ -106,10 +115,19 @@ func (a *InboundController) getInbounds(c *gin.Context) {
 // payloads from settings.clients[]. Detail-view flows still use /get/:id.
 func (a *InboundController) getInboundsSlim(c *gin.Context) {
 	user := session.GetLoginUser(c)
-	inbounds, err := a.inboundService.GetInboundsSlim(user.Id)
+	uid := user.Id
+	if scope := creatorScope(c); scope != 0 {
+		uid = service.OwnerUserID()
+	}
+	inbounds, err := a.inboundService.GetInboundsSlim(uid)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
+	}
+	if scope := creatorScope(c); scope != 0 {
+		if owned, err := service.OwnedClientEmails(scope); err == nil {
+			service.FilterInboundClientsToOwned(inbounds, owned)
+		}
 	}
 	jsonObj(c, inbounds, nil)
 }
@@ -119,7 +137,11 @@ func (a *InboundController) getInboundsSlim(c *gin.Context) {
 // remark template (name-only display part) is applied consistently.
 func (a *InboundController) getAllInboundLinks(c *gin.Context) {
 	user := session.GetLoginUser(c)
-	links, err := a.inboundService.GetAllInboundLinks(resolveHost(c), user.Id)
+	uid := user.Id
+	if scope := creatorScope(c); scope != 0 {
+		uid = service.OwnerUserID()
+	}
+	links, err := a.inboundService.GetAllInboundLinks(resolveHost(c), uid)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
@@ -132,7 +154,11 @@ func (a *InboundController) getAllInboundLinks(c *gin.Context) {
 // Avoids shipping per-client settings and traffic stats just to fill a dropdown.
 func (a *InboundController) getInboundOptions(c *gin.Context) {
 	user := session.GetLoginUser(c)
-	options, err := a.inboundService.GetInboundOptions(user.Id)
+	uid := user.Id
+	if scope := creatorScope(c); scope != 0 {
+		uid = service.OwnerUserID()
+	}
+	options, err := a.inboundService.GetInboundOptions(uid)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
@@ -151,6 +177,11 @@ func (a *InboundController) getInbound(c *gin.Context) {
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
+	}
+	if scope := creatorScope(c); scope != 0 {
+		if owned, err := service.OwnedClientEmails(scope); err == nil {
+			service.FilterInboundClientsToOwned([]*model.Inbound{inbound}, owned)
+		}
 	}
 	jsonObj(c, inbound, nil)
 }

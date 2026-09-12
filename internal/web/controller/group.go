@@ -32,7 +32,7 @@ func (a *GroupController) initRouter(g *gin.RouterGroup) {
 }
 
 func (a *GroupController) list(c *gin.Context) {
-	rows, err := a.clientService.ListGroups()
+	rows, err := a.clientService.ListGroups(creatorScope(c))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -42,7 +42,7 @@ func (a *GroupController) list(c *gin.Context) {
 
 func (a *GroupController) emails(c *gin.Context) {
 	name := c.Param("name")
-	emails, err := a.clientService.EmailsByGroup(name)
+	emails, err := a.clientService.EmailsByGroup(name, creatorScope(c))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -114,6 +114,10 @@ type groupResetTrafficBody struct {
 }
 
 func (a *GroupController) resetTraffic(c *gin.Context) {
+	if creatorScope(c) != 0 {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewError("creator: not allowed"))
+		return
+	}
 	var body groupResetTrafficBody
 	if err := c.ShouldBindJSON(&body); err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
@@ -142,7 +146,7 @@ func (a *GroupController) bulkAdd(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewError("group name is required"))
 		return
 	}
-	affected, err := a.clientService.AddToGroup(req.Emails, req.Group)
+	affected, err := a.clientService.AddToGroup(req.Emails, req.Group, creatorScope(c))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -161,7 +165,7 @@ func (a *GroupController) bulkRemove(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
-	affected, err := a.clientService.RemoveFromGroup(req.Emails)
+	affected, err := a.clientService.RemoveFromGroup(req.Emails, creatorScope(c))
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return

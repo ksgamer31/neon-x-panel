@@ -20,15 +20,20 @@ type GroupSummary struct {
 	Down        int64  `json:"down"`
 }
 
-func (s *ClientService) ListGroups() ([]GroupSummary, error) {
+func (s *ClientService) ListGroups(createdBy ...int) ([]GroupSummary, error) {
 	db := database.GetDB()
+	scoped := len(createdBy) > 0 && createdBy[0] != 0
 	// email is unique in both clients and client_traffics, so the LEFT JOIN
 	// never double-counts a client's traffic.
 	var derived []GroupSummary
-	if err := db.Table("clients AS c").
+	derivedTx := db.Table("clients AS c").
 		Select("c.group_name AS name, COUNT(*) AS client_count, COALESCE(SUM(ct.up + ct.down), 0) AS traffic_used, COALESCE(SUM(ct.up), 0) AS up, COALESCE(SUM(ct.down), 0) AS down").
 		Joins("LEFT JOIN client_traffics ct ON ct.email = c.email").
-		Where("c.group_name <> ''").
+		Where("c.group_name <> ''")
+	if scoped {
+		derivedTx = derivedTx.Where("c.created_by = ?", createdBy[0])
+	}
+	if err := derivedTx.
 		Group("c.group_name").
 		Scan(&derived).Error; err != nil {
 		return nil, err
@@ -116,15 +121,19 @@ func adjustGroupBaselinesForRemovedTraffic(tx *gorm.DB, emails []string) error {
 	return nil
 }
 
-func (s *ClientService) EmailsByGroup(name string) ([]string, error) {
+func (s *ClientService) EmailsByGroup(name string, createdBy ...int) ([]string, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
 		return []string{}, nil
 	}
 	db := database.GetDB()
 	var emails []string
-	if err := db.Model(&model.ClientRecord{}).
-		Where("group_name = ?", name).
+	tx := db.Model(&model.ClientRecord{}).
+		Where("group_name = ?", name)
+	if len(createdBy) > 0 && createdBy[0] != 0 {
+		tx = tx.Where("created_by = ?", createdBy[0])
+	}
+	if err := tx.
 		Order("email ASC").
 		Pluck("email", &emails).Error; err != nil {
 		return nil, err
@@ -202,16 +211,32 @@ func (s *ClientService) DeleteGroup(name string) (int, error) {
 	return s.replaceGroupValue(name, "")
 }
 
-func (s *ClientService) RemoveFromGroup(emails []string) (int, error) {
-	return s.AddToGroup(emails, "")
+func (s *ClientService) RemoveFromGroup(emails []string, createdBy ...int) (int, error) {
+	return s.AddToGroup(emails, "", createdBy...)
 }
 
-func (s *ClientService) AddToGroup(emails []string, group string) (int, error) {
+func (s *ClientService) AddToGroup(emails []string, group string, createdBy ...int) (int, error) {
 	group = strings.TrimSpace(group)
 	if len(emails) == 0 {
 		return 0, nil
 	}
 	db := database.GetDB()
+	if len(createdBy) > 0 && createdBy[0] != 0 {
+		owned, err := s.ownedEmailSet(db, createdBy[0])
+		if err != nil {
+			return 0, err
+		}
+		kept := emails[:0]
+		for _, e := range emails {
+			if _, ok := owned[e]; ok {
+				kept = append(kept, e)
+			}
+		}
+		emails = kept
+		if len(emails) == 0 {
+			return 0, nil
+		}
+	}
 
 	if group != "" {
 		var exists int64
