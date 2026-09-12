@@ -42,10 +42,74 @@ type User struct {
 	Password    string `json:"password"`
 	LoginEpoch  int64  `json:"-" gorm:"default:0"`
 	Role        string `json:"role" gorm:"default:owner"`
+	RoleID      int    `json:"roleId" gorm:"column:role_id;default:0;index"` // 0 = legacy string Role; >0 = AdminRole row
 	Enabled     bool   `json:"enabled" gorm:"default:true"`
 	DisplayName string `json:"displayName" gorm:"default:''"`
 	InboundIds  string `json:"inboundIds" gorm:"default:''"` // JSON array string, empty = all
 	QuotaGB     int64  `json:"quotaGB" gorm:"default:0"`     // 0 = unlimited, bytes quota for all clients created by this admin
+
+	// Per-admin profile fields (Heimdall-style).
+	TelegramID   string `json:"telegramId" gorm:"column:telegram_id;default:''"`
+	SupportURL   string `json:"supportUrl" gorm:"column:support_url;default:''"`
+	ProfileTitle string `json:"profileTitle" gorm:"column:profile_title;default:''"`
+	SubDomain    string `json:"subDomain" gorm:"column:sub_domain;default:''"`
+	Note         string `json:"note" gorm:"type:text;default:''"`
+
+	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+}
+
+// AdminRole is a named, manageable RBAC role (Neon X v1.2.0, Heimdall-style).
+// Built-in roles map 1:1 to the legacy fixed tiers via BaseTier; custom roles
+// pick a base tier whose access they inherit, plus their own quota default.
+type AdminRole struct {
+	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name        string `json:"name" gorm:"uniqueIndex;not null"`
+	Slug        string `json:"slug" gorm:"uniqueIndex;not null"`
+	BaseTier    string `json:"baseTier" gorm:"column:base_tier;default:viewer"` // owner|admin|editor|creator|viewer
+	BuiltIn     bool   `json:"builtIn" gorm:"column:built_in;default:false"`
+	OwnerRole   bool   `json:"ownerRole" gorm:"column:owner_role;default:false"`
+	QuotaGB     int64  `json:"quotaGB" gorm:"column:quota_gb;default:0"` // default quota for new admins of this role, 0 = unlimited
+	PermsJSON   string `json:"permissions" gorm:"column:permissions;type:text"`
+	LimitsJSON  string `json:"limits" gorm:"column:limits;type:text"`
+	FeaturesJSON string `json:"features" gorm:"column:features;type:text"`
+	AccessJSON  string `json:"access" gorm:"column:access;type:text"`
+	CreatedAt   int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt   int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+}
+
+func (AdminRole) TableName() string { return "admin_roles" }
+
+// DefaultNeonRoles seeds the 5 built-in roles matching the legacy fixed tiers.
+func DefaultNeonRoles() []AdminRole {
+	mk := func(name, slug, tier string, owner bool) AdminRole {
+		return AdminRole{
+			Name: name, Slug: slug, BaseTier: tier,
+			BuiltIn: true, OwnerRole: owner,
+			PermsJSON:   `{"tier":"` + tier + `"}`,
+			LimitsJSON:  `{"maxAdmins":0}`,
+			FeaturesJSON: `{"blockLimitedAdmins":true,"disconnectUsersWhenLimited":true}`,
+			AccessJSON:  `{"groups":"all"}`,
+		}
+	}
+	return []AdminRole{
+		mk("Owner", "owner", RoleOwner, true),
+		mk("Admin", "admin", RoleAdmin, false),
+		mk("Editor", "editor", RoleEditor, false),
+		mk("Creator", "creator", RoleCreator, false),
+		mk("Viewer", "viewer", RoleViewer, false),
+	}
+}
+
+// EffectiveTier resolves the enforcement tier for a user: DB role wins when set.
+func EffectiveTier(u *User, role *AdminRole) string {
+	if role != nil && role.BaseTier != "" && IsValidRole(role.BaseTier) {
+		return role.BaseTier
+	}
+	if IsValidRole(u.Role) {
+		return u.Role
+	}
+	return RoleOwner
 }
 
 const (

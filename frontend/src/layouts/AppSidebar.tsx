@@ -235,17 +235,21 @@ export default function AppSidebar() {
         { key: '/routing', icon: 'routing' as const, title: t('menu.routing') },
         { key: '/settings', icon: 'setting' as const, title: t('menu.settings') },
         { key: '/admins', icon: 'admins' as const, title: 'Admin' },
+        { key: '/admin-roles', icon: 'admins' as const, title: 'Roles' },
         { key: '/xray', icon: 'tool' as const, title: t('menu.xray') },
         { key: '/api-docs', icon: 'apidocs' as const, title: t('menu.apiDocs') },
         { key: LOGOUT_KEY, icon: 'logout' as const, title: t('logout') },
       ];
       if (!role || role === 'owner') return all;
+      // admin pages gated: only owner/admin see Admin + Roles
+      const hideAdmin = (list) => (role === 'admin' ? list : list.filter(x => x.key !== '/admins' && x.key !== '/admin-roles'));
       // viewer: only dashboard + inbounds + clients (read-only)
       if (role === 'viewer') return all.filter(x => ['/', '/inbounds', '/clients', LOGOUT_KEY].includes(x.key));
       // creator (client-create-only): only clients + dashboard
       if (role === 'creator') return all.filter(x => ['/', '/clients', LOGOUT_KEY].includes(x.key));
       // editor / admin (creator-full): inbounds + clients
-      if (role === 'editor' || role === 'admin') return all.filter(x => ['/', '/inbounds', '/clients', LOGOUT_KEY].includes(x.key));
+      if (role === 'admin') return hideAdmin(all.filter(x => ['/', '/inbounds', '/clients', '/admins', '/admin-roles', LOGOUT_KEY].includes(x.key)));
+      if (role === 'editor') return all.filter(x => ['/', '/inbounds', '/clients', LOGOUT_KEY].includes(x.key));
       return all.filter(x => ['/', '/inbounds', '/clients', LOGOUT_KEY].includes(x.key));
     },
     [t, role],

@@ -195,22 +195,53 @@ func (s *UserService) GetUserByID(id int) (*model.User, error) {
 	return u, nil
 }
 
+func (s *UserService) roleIDForTier(role string) int {
+	if !model.IsValidRole(role) {
+		role = model.RoleViewer
+	}
+	var r model.AdminRole
+	if err := database.GetDB().Where("base_tier = ? AND built_in = ?", role, true).First(&r).Error; err != nil {
+		return 0
+	}
+	return r.Id
+}
+
 func (s *UserService) CreateUser(username, password, role, displayName, inboundIds string, quotaGB int64) (*model.User, error) {
+	return s.CreateUserFull(username, password, role, 0, displayName, inboundIds, quotaGB, "", "", "", "", "")
+}
+
+func (s *UserService) CreateUserFull(username, password, role string, roleID int, displayName, inboundIds string, quotaGB int64, telegramID, supportURL, profileTitle, subDomain, note string) (*model.User, error) {
 	if username == "" || password == "" {
 		return nil, errors.New("username and password required")
 	}
-	if role == "" {
-		role = model.RoleViewer
+	db := database.GetDB()
+	// Resolve DB role: explicit roleID wins; else map tier string to built-in role row.
+	if roleID > 0 {
+		var r model.AdminRole
+		if err := db.Where("id = ?", roleID).First(&r).Error; err != nil {
+			return nil, errors.New("role not found")
+		}
+		role = r.BaseTier
+	} else {
+		if role == "" {
+			role = model.RoleViewer
+		}
+		if !model.IsValidRole(role) {
+			return nil, errors.New("invalid role")
+		}
+		roleID = s.roleIDForTier(role)
 	}
-	if !model.IsValidRole(role) {
-		return nil, errors.New("invalid role")
+	if quotaGB == 0 && roleID > 0 {
+		var r model.AdminRole
+		if err := db.Where("id = ?", roleID).First(&r).Error; err == nil && r.QuotaGB > 0 {
+			quotaGB = r.QuotaGB
+		}
 	}
 	hashed, err := crypto.HashPasswordAsBcrypt(password)
 	if err != nil {
 		return nil, err
 	}
-	db := database.GetDB()
-	u := &model.User{Username: username, Password: hashed, Role: role, Enabled: true, DisplayName: displayName, InboundIds: inboundIds, QuotaGB: quotaGB}
+	u := &model.User{Username: username, Password: hashed, Role: role, RoleID: roleID, Enabled: true, DisplayName: displayName, InboundIds: inboundIds, QuotaGB: quotaGB, TelegramID: telegramID, SupportURL: supportURL, ProfileTitle: profileTitle, SubDomain: subDomain, Note: note}
 	if err := db.Create(u).Error; err != nil {
 		return nil, err
 	}
@@ -233,13 +264,25 @@ func (s *UserService) DeleteUser(id int) error {
 }
 
 func (s *UserService) UpdateUserRole(id int, role string, enabled *bool, displayName *string, inboundIds *string, quotaGB *int64) error {
+	return s.UpdateUserFull(id, role, nil, enabled, displayName, inboundIds, quotaGB, nil, nil, nil, nil, nil)
+}
+
+func (s *UserService) UpdateUserFull(id int, role string, roleID *int, enabled *bool, displayName *string, inboundIds *string, quotaGB *int64, telegramID, supportURL, profileTitle, subDomain, note *string) error {
 	if role != "" && !model.IsValidRole(role) {
 		return errors.New("invalid role")
 	}
 	db := database.GetDB()
 	updates := map[string]any{}
-	if role != "" {
+	if roleID != nil && *roleID > 0 {
+		var r model.AdminRole
+		if err := db.Where("id = ?", *roleID).First(&r).Error; err != nil {
+			return errors.New("role not found")
+		}
+		updates["role_id"] = r.Id
+		updates["role"] = r.BaseTier
+	} else if role != "" {
 		updates["role"] = role
+		updates["role_id"] = s.roleIDForTier(role)
 	}
 	if enabled != nil {
 		updates["enabled"] = *enabled
@@ -259,6 +302,21 @@ func (s *UserService) UpdateUserRole(id int, role string, enabled *bool, display
 		}
 		updates["quota_gb"] = *quotaGB
 	}
+	if telegramID != nil {
+		updates["telegram_id"] = *telegramID
+	}
+	if supportURL != nil {
+		updates["support_url"] = *supportURL
+	}
+	if profileTitle != nil {
+		updates["profile_title"] = *profileTitle
+	}
+	if subDomain != nil {
+		updates["sub_domain"] = *subDomain
+	}
+	if note != nil {
+		updates["note"] = *note
+	}
 	if len(updates) == 0 {
 		return nil
 	}
@@ -277,3 +335,68 @@ func (s *UserService) UpdateUserPassword(id int, newPassword string) error {
 	return db.Model(&model.User{}).Where("id = ?", id).Updates(map[string]any{"password": hashed, "login_epoch": gorm.Expr("login_epoch + 1")}).Error
 }
 
+// --- Neon X v1.2.0: Heimdall-style admin lifecycle actions ---
+
+// ResetAdminUsage resets traffic of all clients owned by the admin (frees quota).
+func (s *UserService) ResetAdminUsage(reset func(emails []string) (int, error), markRestart func(), id int) error {
+	db := database.GetDB()
+	var emails []string
+	if err := db.Model(&model.ClientRecord{}).Where("created_by = ?", id).Pluck("email", &emails).Error; err != nil {
+		return err
+	}
+	if len(emails) > 0 {
+		if n, err := reset(emails); err != nil {
+			return err
+		} else if n > 0 {
+			markRestart()
+		}
+	}
+	return nil
+}
+
+// SetAdminClientsEnable enables/disables all clients owned by the admin.
+func (s *UserService) SetAdminClientsEnable(setEnable func(emails []string, enable bool) (int, bool, error), markRestart func(), id int, enable bool) (int, error) {
+	db := database.GetDB()
+	var emails []string
+	if err := db.Model(&model.ClientRecord{}).Where("created_by = ?", id).Pluck("email", &emails).Error; err != nil {
+		return 0, err
+	}
+	if len(emails) == 0 {
+		return 0, nil
+	}
+	n, needRestart, err := setEnable(emails, enable)
+	if needRestart {
+		markRestart()
+	}
+	return n, err
+}
+
+// CountAdminClients returns number of clients owned by the admin.
+func (s *UserService) CountAdminClients(id int) int64 {
+	var n int64
+	_ = database.GetDB().Model(&model.ClientRecord{}).Where("created_by = ?", id).Count(&n).Error
+	return n
+}
+
+// AdminStats returns total/active/disabled/limited admin counts.
+func (s *UserService) AdminStats() (total, active, disabled, limited int64) {
+	db := database.GetDB()
+	_ = db.Model(&model.User{}).Count(&total).Error
+	_ = db.Model(&model.User{}).Where("enabled = ?", true).Count(&active).Error
+	_ = db.Model(&model.User{}).Where("enabled = ?", false).Count(&disabled).Error
+	// limited: quota>0 and used>=quota
+	type row struct {
+		Id      int
+		QuotaGB int64 `gorm:"column:quota_gb"`
+	}
+	var admins []row
+	_ = db.Model(&model.User{}).Select("id, quota_gb").Where("quota_gb > 0").Find(&admins).Error
+	for _, a := range admins {
+		var used int64
+		_ = db.Table("clients c").Select("COALESCE(SUM(ct.up + ct.down),0)").Joins("JOIN client_traffics ct ON ct.email = c.email").Where("c.created_by = ?", a.Id).Scan(&used).Error
+		if used >= a.QuotaGB*1024*1024*1024 {
+			limited++
+		}
+	}
+	return total, active, disabled, limited
+}

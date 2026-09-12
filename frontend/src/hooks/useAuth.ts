@@ -12,6 +12,14 @@ export interface Me {
   inboundIds: string;
 }
 
+export async function fetchMeRoleId(): Promise<number> {
+  try {
+    const msg = await HttpUtil.get('/panel/api/users/me', undefined, { silent:true }) as any;
+    if (msg?.success && msg.obj) return Number((msg.obj as any).roleId||0);
+  } catch { /* ignore */ }
+  return 0;
+}
+
 export function useAuth() {
   const q = useQuery({
     queryKey: ['me'],

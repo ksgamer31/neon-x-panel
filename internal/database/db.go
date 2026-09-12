@@ -1258,6 +1258,40 @@ func migrateUserRBACColumns() error {
 		if !m.HasColumn(&model.User{}, "quota_gb") {
 			_ = m.AddColumn(&model.User{}, "QuotaGB")
 		}
+		for _, col := range []string{"RoleID", "TelegramID", "SupportURL", "ProfileTitle", "SubDomain", "Note", "CreatedAt", "UpdatedAt"} {
+			if !m.HasColumn(&model.User{}, col) {
+				_ = m.AddColumn(&model.User{}, col)
+			}
+		}
+	}
+	// AdminRole table (Neon X v1.2.0 custom roles)
+	if !m.HasTable(&model.AdminRole{}) {
+		if err := m.CreateTable(&model.AdminRole{}); err != nil {
+			return err
+		}
+	}
+	for _, col := range []string{"BaseTier", "QuotaGB", "PermsJSON", "LimitsJSON", "FeaturesJSON", "AccessJSON"} {
+		_ = m.AddColumn(&model.AdminRole{}, col)
+	}
+	// seed built-in roles
+	for _, r := range model.DefaultNeonRoles() {
+		var n int64
+		db.Model(&model.AdminRole{}).Where("slug = ?", r.Slug).Count(&n)
+		if n == 0 {
+			_ = db.Create(&r).Error
+		} else {
+			_ = db.Model(&model.AdminRole{}).Where("slug = ?", r.Slug).Updates(map[string]any{"base_tier": r.BaseTier, "built_in": true, "owner_role": r.OwnerRole}).Error
+		}
+	}
+	// backfill RoleID for existing users from legacy Role string
+	roles := map[string]int{}
+	var rows []model.AdminRole
+	_ = db.Find(&rows).Error
+	for _, r := range rows {
+		roles[r.BaseTier] = r.Id
+	}
+	for tier, id := range roles {
+		_ = db.Exec("UPDATE users SET role_id = ? WHERE (role_id IS NULL OR role_id = 0) AND role = ?", id, tier).Error
 	}
 	if m.HasTable(&model.ClientRecord{}) {
 		if !m.HasColumn(&model.ClientRecord{}, "created_by") {

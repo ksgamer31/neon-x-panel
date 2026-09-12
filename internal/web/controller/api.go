@@ -184,7 +184,7 @@ func (a *APIController) enforceRBAC(c *gin.Context) {
 		"/hosts/list": true,
 	}
 	// All non-owner roles are blocked from settings/nodes/hosts/xray/admin management (except read-like endpoints)
-	privilegedPrefixes := []string{"/setting/", "/nodes/", "/hosts/", "/xray/", "/users/"}
+	privilegedPrefixes := []string{"/setting/", "/nodes/", "/hosts/", "/xray/", "/users/", "/roles/"}
 	if u.Role == model.RoleViewer || u.Role == model.RoleCreator || u.Role == model.RoleEditor || u.Role == model.RoleAdmin {
 		if readSensitiveAllow[rel] {
 			// skip privileged block for read-like setting/nodes/hosts endpoints
@@ -193,6 +193,10 @@ func (a *APIController) enforceRBAC(c *gin.Context) {
 				if len(rel) >= len(p) && rel[:len(p)] == p {
 					// /users/me is allowed for everyone (handled separately — but enforceRBAC sees /users/me)
 					if rel == "/users/me" {
+					// roles read for owner/admin
+					if rel == "/roles/list" {
+						if u.Role == model.RoleOwner || u.Role == model.RoleAdmin { break }
+					}
 						break
 					}
 					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"success": false, "msg": "forbidden: insufficient role"})
@@ -346,6 +350,7 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 
 	// Neon X: multi-admin management
 	NewUsersController(api)
+	NewRolesController(api)
 
 	// Extra routes
 	api.POST("/backuptotgbot", a.BackuptoTgbot)
